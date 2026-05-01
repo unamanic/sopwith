@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sopwith</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
+    canvas { display: block; border: 1px solid #333; }
+    #hud { color: #ccc; font-family: monospace; font-size: 13px; width: 800px; display: flex; justify-content: space-between; padding: 4px 8px; background: #111; }
+  </style>
+</head>
+<body>
+  <div id="hud">
+    <span id="hud-speed">SPD: 0</span>
+    <span id="hud-alt">ALT: 0</span>
+    <span id="hud-ammo">AMMO: 40</span>
+    <span id="hud-bombs">BOMBS: 6</span>
+    <span id="hud-score">SCORE: 0</span>
+  </div>
+  <canvas id="canvas" width="800" height="500"></canvas>
+  <div style="color:#555; font-family:monospace; font-size:11px; margin-top:4px;">
+    [↑][↓] Throttle &nbsp; [←][→] Pitch &nbsp; [Space] Fire &nbsp; [B] Bomb &nbsp; [L] Loop
+  </div>
+  <script src="game.js"></script>
+</body>
+</html>
