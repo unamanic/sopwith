@@ -20,16 +20,84 @@ const WORLD_WIDTH     = 8000;
 const NUM_SEGMENTS    = Math.ceil(WORLD_WIDTH / TERRAIN_SEGMENT) + 2;
 
 function generateTerrain() {
-  const pts = [];
-  let y = GROUND_LEVEL;
-  for (let i = 0; i < NUM_SEGMENTS; i++) {
-    pts.push(y);
+  const pts   = new Array(NUM_SEGMENTS).fill(GROUND_LEVEL);
+  const YMIN  = H * 0.33;
+  const YMAX  = H - 14;
+
+  // Build control points: [segIndex, y]
+  const ctrl  = [];
+  ctrl.push([0,  GROUND_LEVEL]);
+  ctrl.push([14, GROUND_LEVEL]); // guaranteed flat start plateau
+
+  let pos  = 16;
+  let curY = GROUND_LEVEL;
+
+  while (pos < NUM_SEGMENTS - 25) {
     const roll = Math.random();
-    if (roll < 0.3)      y += (Math.random() - 0.5) * 30;
-    else if (roll < 0.5) y += (Math.random() - 0.5) * 10;
-    y = Math.max(H * 0.45, Math.min(H - 20, y));
+    let nextY  = curY;
+    let span;
+
+    if (roll < 0.22) {
+      // Tall hill — rises sharply, flat top, drops back
+      span  = 18 + Math.floor(Math.random() * 22);
+      const peak = Math.max(YMIN, curY - 110 - Math.random() * 100);
+      ctrl.push([pos + Math.floor(span * 0.35), peak]);
+      ctrl.push([pos + Math.floor(span * 0.65), peak]);
+      nextY = curY + (Math.random() - 0.5) * 30;
+    } else if (roll < 0.40) {
+      // Valley — dips down, flat bottom
+      span  = 10 + Math.floor(Math.random() * 14);
+      const pit = Math.min(YMAX, curY + 35 + Math.random() * 45);
+      ctrl.push([pos + Math.floor(span * 0.4), pit]);
+      ctrl.push([pos + Math.floor(span * 0.6), pit]);
+      nextY = curY;
+    } else if (roll < 0.55) {
+      // Cliff up — abrupt rise over 4-6 segs, then plateau
+      span  = 4 + Math.floor(Math.random() * 4);
+      nextY = Math.max(YMIN, curY - 70 - Math.random() * 90);
+      const plateauSpan = 6 + Math.floor(Math.random() * 12);
+      ctrl.push([pos + span + plateauSpan, nextY]);
+      span += plateauSpan;
+    } else if (roll < 0.68) {
+      // Cliff down — abrupt drop, then plateau
+      span  = 4 + Math.floor(Math.random() * 4);
+      nextY = Math.min(YMAX, curY + 55 + Math.random() * 70);
+      const plateauSpan = 5 + Math.floor(Math.random() * 10);
+      ctrl.push([pos + span + plateauSpan, nextY]);
+      span += plateauSpan;
+    } else if (roll < 0.82) {
+      // Rolling bumps — several smaller hills in a row
+      span  = 20 + Math.floor(Math.random() * 15);
+      const mid = pos + Math.floor(span / 2);
+      ctrl.push([mid, Math.max(YMIN, curY - 40 - Math.random() * 50)]);
+      nextY = curY + (Math.random() - 0.5) * 40;
+      nextY = Math.max(YMIN + 60, Math.min(YMAX - 30, nextY));
+    } else {
+      // Short flat section
+      span  = 6 + Math.floor(Math.random() * 10);
+      nextY = curY + (Math.random() - 0.5) * 15;
+    }
+
+    nextY = Math.max(YMIN, Math.min(YMAX, nextY));
+    ctrl.push([pos + span, nextY]);
+    curY  = nextY;
+    pos  += span + 1;
   }
-  for (let i = 3; i < 8; i++) pts[i] = GROUND_LEVEL;
+
+  ctrl.push([NUM_SEGMENTS - 1, GROUND_LEVEL]);
+
+  // Sort ctrl by index (just in case) and smooth-interpolate (cubic S-curve)
+  ctrl.sort((a, b) => a[0] - b[0]);
+  for (let c = 0; c < ctrl.length - 1; c++) {
+    const [i0, y0] = ctrl[c];
+    const [i1, y1] = ctrl[c + 1];
+    for (let i = i0; i <= i1 && i < NUM_SEGMENTS; i++) {
+      const t = (i - i0) / Math.max(1, i1 - i0);
+      const s = t * t * (3 - 2 * t); // smoothstep
+      pts[i] = y0 + (y1 - y0) * s;
+    }
+  }
+
   return pts;
 }
 
@@ -129,6 +197,43 @@ let targets     = spawnTargets(1);
 let enemyPlanes = spawnEnemyPlanes(1);
 let aaGuns      = spawnAAGuns(1, targets);
 let balloons    = spawnBalloons(1);
+
+// ── Ammo pickups ──────────────────────────────────────────────────────────────
+function spawnAmmoPickups() {
+  const result = [];
+  for (let x = 900; x < WORLD_WIDTH - 600; x += 500 + Math.random() * 400) {
+    const gy = terrainYAt(x);
+    result.push({
+      x,
+      baseY:        gy - 90 - Math.random() * 50,
+      collected:    false,
+      respawnTimer: 0,
+    });
+  }
+  return result;
+}
+
+let ammoPickups = spawnAmmoPickups();
+
+function updateAmmoPickups() {
+  for (const p of ammoPickups) {
+    if (p.collected) {
+      p.respawnTimer--;
+      if (p.respawnTimer <= 0) {
+        p.collected = false;
+        p.baseY     = terrainYAt(p.x) - 90 - Math.random() * 50;
+      }
+      continue;
+    }
+    if (!plane.dead &&
+        Math.abs(plane.x - p.x) < 28 &&
+        Math.abs(plane.y - p.baseY) < 28) {
+      p.collected    = true;
+      p.respawnTimer = 1200; // 20s at 60fps
+      plane.ammo     = Math.min(plane.ammo + 25, 60);
+    }
+  }
+}
 
 const plane = {
   x:           300,
@@ -447,6 +552,7 @@ window.addEventListener('keydown', e => {
   if (gameOver) { restartGame(); return; }
   if (e.code === 'Space') fireBullet();
   if (e.code === 'KeyB')  dropBomb();
+  if (e.code === 'KeyM')  { if (!audioCtx) initAudio(); toggleSound(); }
   if (e.code === 'KeyL' && !looping && !plane.onGround) { looping = true; loopAngle = 0; }
 });
 window.addEventListener('keyup', e => { keys[e.code] = false; });
@@ -581,6 +687,7 @@ function restartGame() {
   enemyPlanes = spawnEnemyPlanes(1);
   aaGuns      = spawnAAGuns(1, targets);
   balloons    = spawnBalloons(1);
+  ammoPickups = spawnAmmoPickups();
   bullets.length = 0; bombs.length = 0; enemyBullets.length = 0; explosions.length = 0;
   resetPlane();
   startMusic();
@@ -798,6 +905,7 @@ function nextLevel() {
   enemyPlanes = spawnEnemyPlanes(level);
   aaGuns      = spawnAAGuns(level, targets);
   balloons    = spawnBalloons(level);
+  ammoPickups = spawnAmmoPickups();
   levelComplete = false; levelTimer = 0;
   bullets.length = 0; bombs.length = 0; enemyBullets.length = 0;
   cameraX = 0;
@@ -1020,6 +1128,50 @@ function drawAAGuns() {
     ctx.fillRect(0, -2.5, 22, 5);
     ctx.fillStyle = '#999';
     ctx.fillRect(18, -3.5, 5, 7); // muzzle brake
+    ctx.restore();
+  }
+}
+
+function drawAmmoPickups() {
+  for (const p of ammoPickups) {
+    if (p.collected) continue;
+    const sx  = p.x - cameraX;
+    if (sx < -60 || sx > W + 60) continue;
+    const bob = Math.sin(frame * 0.06) * 5;
+    const sy  = p.baseY + bob;
+
+    // outer glow ring
+    ctx.save();
+    ctx.globalAlpha = 0.35 + Math.sin(frame * 0.1) * 0.15;
+    ctx.strokeStyle = '#ffcc00'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(sx, sy, 22, 0, Math.PI * 2); ctx.stroke();
+    ctx.globalAlpha = 1;
+
+    // rotating star
+    ctx.translate(sx, sy);
+    ctx.rotate(frame * 0.025);
+    ctx.fillStyle = '#ffdd00';
+    ctx.beginPath();
+    for (let i = 0; i < 5; i++) {
+      const outer = (i * 4 * Math.PI / 5) - Math.PI / 2;
+      const inner = outer + (2 * Math.PI / 10);
+      i === 0
+        ? ctx.moveTo(Math.cos(outer) * 14, Math.sin(outer) * 14)
+        : ctx.lineTo(Math.cos(outer) * 14, Math.sin(outer) * 14);
+      ctx.lineTo(Math.cos(inner) * 6,  Math.sin(inner) * 6);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = '#ff8800'; ctx.lineWidth = 1.5; ctx.stroke();
+
+    // AMMO label (not rotated)
+    ctx.rotate(-frame * 0.025);
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 9px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('AMMO', 0, 26);
+    ctx.textAlign = 'left';
+
     ctx.restore();
   }
 }
@@ -1509,6 +1661,7 @@ function drawTitleScreen() {
     ['SPACE',    'Fire machine guns'],
     ['B',        'Drop bomb'],
     ['L',        'Loop  (reverses direction)'],
+    ['M',        'Mute / unmute sound'],
   ];
 
   ctx.font = '14px monospace';
@@ -1540,6 +1693,7 @@ function loop() {
     updateEnemyPlanes();
     updateAAGuns();
     updateBalloons();
+    updateAmmoPickups();
     updateEnemyBullets();
     updateProjectiles();
     checkLevelComplete();
@@ -1555,6 +1709,7 @@ function loop() {
     drawTerrain();
     drawTargets();
     drawAAGuns();
+    drawAmmoPickups();
     drawBalloons();
     drawEnemyPlanes();
     drawBullets();
