@@ -16,7 +16,7 @@ const TERRAIN_COLOR  = '#2d5a1b';
 
 // ── Terrain ───────────────────────────────────────────────────────────────────
 const TERRAIN_SEGMENT = 40;
-const WORLD_WIDTH     = 8000;
+const WORLD_WIDTH     = 16000;
 const NUM_SEGMENTS    = Math.ceil(WORLD_WIDTH / TERRAIN_SEGMENT) + 2;
 
 function generateTerrain() {
