@@ -1714,6 +1714,52 @@ function drawHUD() {
     ctx.restore();
   }
 
+  // ammo/bomb sprites in upper left
+  let spriteX = 8, spriteY = 6;
+  
+  // draw ammo bullets as small stars
+  ctx.fillStyle = '#ffdd00';
+  for (let i = 0; i < plane.ammo; i++) {
+    if (spriteX > 80) { spriteX = 8; spriteY += 16; }
+    ctx.save();
+    ctx.translate(spriteX, spriteY);
+    ctx.scale(0.5, 0.5);
+    ctx.beginPath();
+    for (let j = 0; j < 5; j++) {
+      const outer = (j * 4 * Math.PI / 5) - Math.PI / 2;
+      const inner = outer + (2 * Math.PI / 10);
+      j === 0
+        ? ctx.moveTo(Math.cos(outer) * 8, Math.sin(outer) * 8)
+        : ctx.lineTo(Math.cos(outer) * 8, Math.sin(outer) * 8);
+      ctx.lineTo(Math.cos(inner) * 3, Math.sin(inner) * 3);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+    spriteX += 8;
+  }
+  
+  spriteX = 8; spriteY += 20;
+  
+  // draw bombs
+  ctx.fillStyle = '#333';
+  for (let i = 0; i < plane.bombs; i++) {
+    if (spriteX > 80) { spriteX = 8; spriteY += 16; }
+    ctx.save();
+    ctx.translate(spriteX, spriteY);
+    // bomb body
+    ctx.beginPath(); ctx.arc(0, 0, 4, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#666'; ctx.lineWidth = 0.8; ctx.stroke();
+    // nose cone
+    ctx.fillStyle = '#555';
+    ctx.beginPath(); ctx.moveTo(-2, -2); ctx.lineTo(2, -2); ctx.lineTo(0, -5); ctx.closePath(); ctx.fill();
+    // fuse
+    ctx.strokeStyle = '#cc8800'; ctx.lineWidth = 0.8;
+    ctx.beginPath(); ctx.moveTo(0, -5); ctx.quadraticCurveTo(3, -8, 2, -10); ctx.stroke();
+    ctx.restore();
+    spriteX += 8;
+  }
+
   if (plane.dead && !gameOver) {
     ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(0, 0, W, H);
     ctx.fillStyle = '#ff4444'; ctx.font = 'bold 36px monospace'; ctx.textAlign = 'center';
@@ -1832,6 +1878,7 @@ function drawTitleScreen() {
     ['SPACE',    'Fire machine guns'],
     ['B',        'Drop bomb'],
     ['L',        'Loop  (reverses direction)'],
+    ['Q',        'Quit to menu'],
     ['M',        'Mute / unmute sound'],
   ];
 
