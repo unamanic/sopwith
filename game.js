@@ -680,7 +680,7 @@ window.addEventListener('keydown', e => {
   if (e.code === 'KeyB')  dropBomb();
   if (e.code === 'KeyM')  { if (!audioCtx) initAudio(); toggleSound(); }
   if (e.code === 'KeyL' && !looping && !plane.onGround) { looping = true; loopAngle = 0; }
-  if (e.code === 'KeyQ')  { if (!gameOver && !titleScreen) restartGame(); }
+  if (e.code === 'KeyQ')  { if (!gameOver && !titleScreen) { titleScreen = true; stopSadMusic(); } }
 });
 window.addEventListener('keyup', e => { keys[e.code] = false; });
 
