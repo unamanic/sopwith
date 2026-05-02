@@ -247,11 +247,12 @@ const plane = {
   vy:          0,
   angle:       0,
   throttle:    0,
-  facingRight: true,
-  onGround:    true,
-  ammo:        40,
-  bombs:       6,
-  dead:        false,
+  facingRight:  true,
+  onGround:     true,
+  hasTakenOff:  false,
+  ammo:         40,
+  bombs:        6,
+  dead:         false,
 };
 
 let score         = 0;
@@ -509,38 +510,50 @@ function stopMusic() {
   if (musicTimer) { clearTimeout(musicTimer); musicTimer = null; }
 }
 
-// ── Sad game-over dirge (D minor, slow, descending) ───────────────────────────
-const SAD_BPM  = 56;
+// ── Sad game-over march (D minor, funeral march tempo) ────────────────────────
+const SAD_BPM = 88;
 const SQ  = 60 / SAD_BPM;
+const SE  = SQ / 2;
 const SH  = SQ * 2;
-const SW  = SQ * 4;
 
 const D3=146.83,F3=174.61,C3=130.81,Bb2=116.54,G2=98.00,Bb3=233.08,G3=196.00;
 
-// Mournful descending melody, D minor
+// D minor funeral march — dotted quarter feel, heavy downbeats
 const SAD_MELODY = [
-  [D4,SH],[C4,SQ],[Bb3,SH],[A3,SQ],
-  [G3,SH],[F3,SQ],[E3,SH],[D3,SQ],
-  [F4,SH],[E4,SQ],[D4,SH],[C4,SQ],
-  [Bb3,SW],[R,SQ],
-  [A3,SH],[Bb3,SQ],[G3,SH],[F3,SQ],
-  [E3,SH],[D3,SH],[R,SH],
-  [D3,SW],[R,SQ],
+  [D4,SQ],[R,SE],[D4,SE],[F4,SQ],[A4,SQ],
+  [G4,SH],[F4,SE],[E4,SE],
+  [D4,SQ],[R,SE],[D4,SE],[C4,SQ],[Bb3,SQ],
+  [A3,SH],[R,SQ],
+  [F4,SQ],[R,SE],[F4,SE],[E4,SQ],[D4,SQ],
+  [C4,SH],[Bb3,SE],[A3,SE],
+  [G3,SQ],[A3,SE],[Bb3,SE],[A3,SQ],[G3,SQ],
+  [D3,SH],[R,SQ],
 ];
 
-// Slow bass drone
+// March bass — boom-step, doom-step
 const SAD_BASS = [
-  [D3,SW],[C3,SW],[Bb2,SW],[G2,SW],
-  [D3,SW],[C3,SW],[D3,SW],
+  [D3,SQ],[D3,SE],[R,SE],[F3,SQ],[A3,SQ],
+  [G2,SQ],[G2,SE],[R,SE],[Bb2,SQ],[G2,SQ],
+  [C3,SQ],[C3,SE],[R,SE],[E3,SQ],[G3,SQ],
+  [A2,SH],[R,SQ],
+  [D3,SQ],[D3,SE],[R,SE],[F3,SQ],[C3,SQ],
+  [Bb2,SH],[G2,SQ],
+  [C3,SQ],[C3,SE],[R,SE],[G2,SQ],[C3,SQ],
+  [D3,SH],[R,SQ],
 ];
 
-let sadMelIdx=0, sadBassIdx=0;
-let sadNextMel=0, sadNextBass=0;
+// Heavy march kick on 1 and 3, snare on 2 and 4
+const SAD_PERC = [
+  {kick:true,d:SQ},{kick:false,d:SQ},{kick:true,d:SQ},{kick:false,d:SQ},
+];
+
+let sadMelIdx=0, sadBassIdx=0, sadPercIdx=0;
+let sadNextMel=0, sadNextBass=0, sadNextPerc=0;
 let sadTimer=null, sadPlaying=false;
 
 function sadMusicTick() {
   if (!audioCtx || !sadPlaying) return;
-  const LOOKAHEAD = 0.3;
+  const LOOKAHEAD = 0.25;
   const now = audioCtx.currentTime;
 
   while (sadNextMel < now + LOOKAHEAD) {
@@ -548,12 +561,12 @@ function sadMusicTick() {
     if (f !== 0) {
       const osc  = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
-      osc.type = 'sine';
+      osc.type = 'triangle';
       osc.frequency.value = f;
       gain.gain.setValueAtTime(0, sadNextMel);
-      gain.gain.linearRampToValueAtTime(0.07, sadNextMel + 0.08);
-      gain.gain.setValueAtTime(0.055, sadNextMel + d * 0.7);
-      gain.gain.linearRampToValueAtTime(0, sadNextMel + d * 0.95);
+      gain.gain.linearRampToValueAtTime(0.09, sadNextMel + 0.04);
+      gain.gain.setValueAtTime(0.07, sadNextMel + d * 0.65);
+      gain.gain.linearRampToValueAtTime(0, sadNextMel + d * 0.9);
       osc.connect(gain); gain.connect(masterGain || audioCtx.destination);
       osc.start(sadNextMel); osc.stop(sadNextMel + d);
     }
@@ -563,28 +576,51 @@ function sadMusicTick() {
 
   while (sadNextBass < now + LOOKAHEAD) {
     const [f, d] = SAD_BASS[sadBassIdx % SAD_BASS.length];
-    const osc  = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.type = 'sawtooth';
-    osc.frequency.value = f;
-    gain.gain.setValueAtTime(0, sadNextBass);
-    gain.gain.linearRampToValueAtTime(0.04, sadNextBass + 0.15);
-    gain.gain.setValueAtTime(0.03, sadNextBass + d * 0.8);
-    gain.gain.linearRampToValueAtTime(0, sadNextBass + d * 0.98);
-    osc.connect(gain); gain.connect(masterGain || audioCtx.destination);
-    osc.start(sadNextBass); osc.stop(sadNextBass + d);
+    if (f !== 0) {
+      const osc  = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.value = f;
+      gain.gain.setValueAtTime(0, sadNextBass);
+      gain.gain.linearRampToValueAtTime(0.055, sadNextBass + 0.03);
+      gain.gain.setValueAtTime(0.04, sadNextBass + d * 0.7);
+      gain.gain.linearRampToValueAtTime(0, sadNextBass + d * 0.92);
+      osc.connect(gain); gain.connect(masterGain || audioCtx.destination);
+      osc.start(sadNextBass); osc.stop(sadNextBass + d);
+    }
     sadNextBass += d;
     sadBassIdx++;
   }
 
-  sadTimer = setTimeout(sadMusicTick, 50);
+  while (sadNextPerc < now + LOOKAHEAD) {
+    const p = SAD_PERC[sadPercIdx % SAD_PERC.length];
+    const dur = p.kick ? 0.18 : 0.09;
+    const sr  = audioCtx.sampleRate;
+    const buf = audioCtx.createBuffer(1, Math.floor(sr * dur), sr);
+    const dat = buf.getChannelData(0);
+    for (let i = 0; i < dat.length; i++) dat[i] = Math.random() * 2 - 1;
+    const src    = audioCtx.createBufferSource();
+    src.buffer   = buf;
+    const filter = audioCtx.createBiquadFilter();
+    filter.type  = 'lowpass';
+    filter.frequency.value = p.kick ? 140 : 3000;
+    const gain = audioCtx.createGain();
+    gain.gain.setValueAtTime(p.kick ? 0.5 : 0.15, sadNextPerc);
+    gain.gain.exponentialRampToValueAtTime(0.001, sadNextPerc + dur);
+    src.connect(filter); filter.connect(gain); gain.connect(masterGain || audioCtx.destination);
+    src.start(sadNextPerc);
+    sadNextPerc += p.d;
+    sadPercIdx++;
+  }
+
+  sadTimer = setTimeout(sadMusicTick, 30);
 }
 
 function startSadMusic() {
   if (!audioCtx || sadPlaying) return;
   sadPlaying = true;
-  sadMelIdx = sadBassIdx = 0;
-  sadNextMel = sadNextBass = audioCtx.currentTime + 0.6;
+  sadMelIdx = sadBassIdx = sadPercIdx = 0;
+  sadNextMel = sadNextBass = sadNextPerc = audioCtx.currentTime + 0.5;
   sadMusicTick();
 }
 
@@ -700,7 +736,9 @@ function updatePlane() {
 
   const gy = terrainYAt(plane.x);
   if (plane.y >= gy - 10) {
-    if (Math.abs(plane.vy) > 2.8 || Math.abs(plane.angle) > 35) {
+    if (plane.hasTakenOff) {
+      killPlane();
+    } else if (Math.abs(plane.vy) > 2.8 || Math.abs(plane.angle) > 35) {
       killPlane();
     } else {
       plane.y = gy - 10; plane.vy = 0; plane.vx *= 0.90;
@@ -709,6 +747,7 @@ function updatePlane() {
     }
   } else {
     plane.onGround = false;
+    plane.hasTakenOff = true;
   }
 
   if (plane.dead) return;
@@ -764,7 +803,7 @@ function killPlane() {
 function resetPlane() {
   plane.dead = false; plane.x = 300; plane.y = GROUND_LEVEL - 10;
   plane.vx = 0; plane.vy = 0; plane.angle = 0; plane.throttle = 0;
-  plane.facingRight = true; plane.onGround = true;
+  plane.facingRight = true; plane.onGround = true; plane.hasTakenOff = false;
   plane.ammo = 40; plane.bombs = 6;
   looping = false; loopAngle = 0;
 }
