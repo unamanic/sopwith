@@ -201,14 +201,15 @@ let balloons    = spawnBalloons(1);
 // ── Ammo pickups ──────────────────────────────────────────────────────────────
 function spawnAmmoPickups() {
   const result = [];
-  for (let x = 900; x < WORLD_WIDTH - 600; x += 500 + Math.random() * 400) {
+  // bullet ammo: ~every 1800-2500px
+  for (let x = 1200; x < WORLD_WIDTH - 600; x += 1800 + Math.random() * 700) {
     const gy = terrainYAt(x);
-    result.push({
-      x,
-      baseY:        gy - 90 - Math.random() * 50,
-      collected:    false,
-      respawnTimer: 0,
-    });
+    result.push({ type: 'bullet', x, baseY: gy - 90 - Math.random() * 50, collected: false, respawnTimer: 0 });
+  }
+  // bomb ammo: ~every 4000-6000px
+  for (let x = 3000 + Math.random() * 1000; x < WORLD_WIDTH - 600; x += 4000 + Math.random() * 2000) {
+    const gy = terrainYAt(x);
+    result.push({ type: 'bomb', x, baseY: gy - 90 - Math.random() * 50, collected: false, respawnTimer: 0 });
   }
   return result;
 }
@@ -229,8 +230,12 @@ function updateAmmoPickups() {
         Math.abs(plane.x - p.x) < 28 &&
         Math.abs(plane.y - p.baseY) < 28) {
       p.collected    = true;
-      p.respawnTimer = 1200; // 20s at 60fps
-      plane.ammo     = Math.min(plane.ammo + 25, 60);
+      p.respawnTimer = 1800;
+      if (p.type === 'bomb') {
+        plane.bombs = Math.min(plane.bombs + 3, 12);
+      } else {
+        plane.ammo  = Math.min(plane.ammo + 20, 60);
+      }
     }
   }
 }
@@ -1140,38 +1145,66 @@ function drawAmmoPickups() {
     const bob = Math.sin(frame * 0.06) * 5;
     const sy  = p.baseY + bob;
 
-    // outer glow ring
     ctx.save();
-    ctx.globalAlpha = 0.35 + Math.sin(frame * 0.1) * 0.15;
-    ctx.strokeStyle = '#ffcc00'; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.arc(sx, sy, 22, 0, Math.PI * 2); ctx.stroke();
-    ctx.globalAlpha = 1;
 
-    // rotating star
-    ctx.translate(sx, sy);
-    ctx.rotate(frame * 0.025);
-    ctx.fillStyle = '#ffdd00';
-    ctx.beginPath();
-    for (let i = 0; i < 5; i++) {
-      const outer = (i * 4 * Math.PI / 5) - Math.PI / 2;
-      const inner = outer + (2 * Math.PI / 10);
-      i === 0
-        ? ctx.moveTo(Math.cos(outer) * 14, Math.sin(outer) * 14)
-        : ctx.lineTo(Math.cos(outer) * 14, Math.sin(outer) * 14);
-      ctx.lineTo(Math.cos(inner) * 6,  Math.sin(inner) * 6);
+    if (p.type === 'bomb') {
+      // bomb pickup: dark red/grey bomb shape with fuse
+      ctx.globalAlpha = 0.35 + Math.sin(frame * 0.1) * 0.15;
+      ctx.strokeStyle = '#ff4400'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(sx, sy, 22, 0, Math.PI * 2); ctx.stroke();
+      ctx.globalAlpha = 1;
+
+      ctx.translate(sx, sy);
+      // bomb body
+      ctx.fillStyle = '#333';
+      ctx.beginPath(); ctx.arc(0, 3, 12, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#666'; ctx.lineWidth = 1.5; ctx.stroke();
+      // nose cone
+      ctx.fillStyle = '#555';
+      ctx.beginPath(); ctx.moveTo(-5, -5); ctx.lineTo(5, -5); ctx.lineTo(0, -13); ctx.closePath(); ctx.fill();
+      // fuse
+      ctx.strokeStyle = '#cc8800'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(0, -13); ctx.quadraticCurveTo(8, -20, 4, -26); ctx.stroke();
+      // spark
+      ctx.fillStyle = '#ffff00';
+      ctx.globalAlpha = 0.7 + Math.sin(frame * 0.3) * 0.3;
+      ctx.beginPath(); ctx.arc(4, -26, 3, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 1;
+      // label
+      ctx.fillStyle = '#ff8866';
+      ctx.font = 'bold 9px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('BOMB', 0, 28);
+    } else {
+      // bullet ammo: yellow rotating star (original style)
+      ctx.globalAlpha = 0.35 + Math.sin(frame * 0.1) * 0.15;
+      ctx.strokeStyle = '#ffcc00'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(sx, sy, 22, 0, Math.PI * 2); ctx.stroke();
+      ctx.globalAlpha = 1;
+
+      ctx.translate(sx, sy);
+      ctx.rotate(frame * 0.025);
+      ctx.fillStyle = '#ffdd00';
+      ctx.beginPath();
+      for (let i = 0; i < 5; i++) {
+        const outer = (i * 4 * Math.PI / 5) - Math.PI / 2;
+        const inner = outer + (2 * Math.PI / 10);
+        i === 0
+          ? ctx.moveTo(Math.cos(outer) * 14, Math.sin(outer) * 14)
+          : ctx.lineTo(Math.cos(outer) * 14, Math.sin(outer) * 14);
+        ctx.lineTo(Math.cos(inner) * 6, Math.sin(inner) * 6);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#ff8800'; ctx.lineWidth = 1.5; ctx.stroke();
+      ctx.rotate(-frame * 0.025);
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 9px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('AMMO', 0, 26);
     }
-    ctx.closePath();
-    ctx.fill();
-    ctx.strokeStyle = '#ff8800'; ctx.lineWidth = 1.5; ctx.stroke();
 
-    // AMMO label (not rotated)
-    ctx.rotate(-frame * 0.025);
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 9px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText('AMMO', 0, 26);
     ctx.textAlign = 'left';
-
     ctx.restore();
   }
 }
