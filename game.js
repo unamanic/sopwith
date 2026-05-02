@@ -1720,10 +1720,10 @@ function drawHUD() {
   // draw ammo bullets as small stars
   ctx.fillStyle = '#ffdd00';
   for (let i = 0; i < plane.ammo; i++) {
-    if (spriteX > 80) { spriteX = 8; spriteY += 16; }
+    if (spriteX > 120) { spriteX = 8; spriteY += 28; }
     ctx.save();
     ctx.translate(spriteX, spriteY);
-    ctx.scale(0.5, 0.5);
+    ctx.scale(1.0, 1.0);
     ctx.beginPath();
     for (let j = 0; j < 5; j++) {
       const outer = (j * 4 * Math.PI / 5) - Math.PI / 2;
@@ -1736,17 +1736,18 @@ function drawHUD() {
     ctx.closePath();
     ctx.fill();
     ctx.restore();
-    spriteX += 8;
+    spriteX += 18;
   }
   
-  spriteX = 8; spriteY += 20;
+  spriteX = 8; spriteY += 30;
   
   // draw bombs
   ctx.fillStyle = '#333';
   for (let i = 0; i < plane.bombs; i++) {
-    if (spriteX > 80) { spriteX = 8; spriteY += 16; }
+    if (spriteX > 120) { spriteX = 8; spriteY += 28; }
     ctx.save();
     ctx.translate(spriteX, spriteY);
+    ctx.scale(1.5, 1.5);
     // bomb body
     ctx.beginPath(); ctx.arc(0, 0, 4, 0, Math.PI * 2); ctx.fill();
     ctx.strokeStyle = '#666'; ctx.lineWidth = 0.8; ctx.stroke();
@@ -1757,7 +1758,7 @@ function drawHUD() {
     ctx.strokeStyle = '#cc8800'; ctx.lineWidth = 0.8;
     ctx.beginPath(); ctx.moveTo(0, -5); ctx.quadraticCurveTo(3, -8, 2, -10); ctx.stroke();
     ctx.restore();
-    spriteX += 8;
+    spriteX += 18;
   }
 
   if (plane.dead && !gameOver) {
