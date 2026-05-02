@@ -509,6 +509,90 @@ function stopMusic() {
   if (musicTimer) { clearTimeout(musicTimer); musicTimer = null; }
 }
 
+// ── Sad game-over dirge (D minor, slow, descending) ───────────────────────────
+const SAD_BPM  = 56;
+const SQ  = 60 / SAD_BPM;
+const SH  = SQ * 2;
+const SW  = SQ * 4;
+
+const D3=146.83,F3=174.61,C3=130.81,Bb2=116.54,G2=98.00,Bb3=233.08,G3=196.00;
+
+// Mournful descending melody, D minor
+const SAD_MELODY = [
+  [D4,SH],[C4,SQ],[Bb3,SH],[A3,SQ],
+  [G3,SH],[F3,SQ],[E3,SH],[D3,SQ],
+  [F4,SH],[E4,SQ],[D4,SH],[C4,SQ],
+  [Bb3,SW],[R,SQ],
+  [A3,SH],[Bb3,SQ],[G3,SH],[F3,SQ],
+  [E3,SH],[D3,SH],[R,SH],
+  [D3,SW],[R,SQ],
+];
+
+// Slow bass drone
+const SAD_BASS = [
+  [D3,SW],[C3,SW],[Bb2,SW],[G2,SW],
+  [D3,SW],[C3,SW],[D3,SW],
+];
+
+let sadMelIdx=0, sadBassIdx=0;
+let sadNextMel=0, sadNextBass=0;
+let sadTimer=null, sadPlaying=false;
+
+function sadMusicTick() {
+  if (!audioCtx || !sadPlaying) return;
+  const LOOKAHEAD = 0.3;
+  const now = audioCtx.currentTime;
+
+  while (sadNextMel < now + LOOKAHEAD) {
+    const [f, d] = SAD_MELODY[sadMelIdx % SAD_MELODY.length];
+    if (f !== 0) {
+      const osc  = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = f;
+      gain.gain.setValueAtTime(0, sadNextMel);
+      gain.gain.linearRampToValueAtTime(0.07, sadNextMel + 0.08);
+      gain.gain.setValueAtTime(0.055, sadNextMel + d * 0.7);
+      gain.gain.linearRampToValueAtTime(0, sadNextMel + d * 0.95);
+      osc.connect(gain); gain.connect(masterGain || audioCtx.destination);
+      osc.start(sadNextMel); osc.stop(sadNextMel + d);
+    }
+    sadNextMel += d;
+    sadMelIdx++;
+  }
+
+  while (sadNextBass < now + LOOKAHEAD) {
+    const [f, d] = SAD_BASS[sadBassIdx % SAD_BASS.length];
+    const osc  = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.value = f;
+    gain.gain.setValueAtTime(0, sadNextBass);
+    gain.gain.linearRampToValueAtTime(0.04, sadNextBass + 0.15);
+    gain.gain.setValueAtTime(0.03, sadNextBass + d * 0.8);
+    gain.gain.linearRampToValueAtTime(0, sadNextBass + d * 0.98);
+    osc.connect(gain); gain.connect(masterGain || audioCtx.destination);
+    osc.start(sadNextBass); osc.stop(sadNextBass + d);
+    sadNextBass += d;
+    sadBassIdx++;
+  }
+
+  sadTimer = setTimeout(sadMusicTick, 50);
+}
+
+function startSadMusic() {
+  if (!audioCtx || sadPlaying) return;
+  sadPlaying = true;
+  sadMelIdx = sadBassIdx = 0;
+  sadNextMel = sadNextBass = audioCtx.currentTime + 0.6;
+  sadMusicTick();
+}
+
+function stopSadMusic() {
+  sadPlaying = false;
+  if (sadTimer) { clearTimeout(sadTimer); sadTimer = null; }
+}
+
 // ── Projectiles ───────────────────────────────────────────────────────────────
 const bullets      = [];
 const bombs        = [];
@@ -671,7 +755,7 @@ function killPlane() {
   spawnExplosion(plane.x, plane.y, true);
   lives--;
   if (lives <= 0) {
-    setTimeout(() => { gameOver = true; stopMusic(); }, 1500);
+    setTimeout(() => { gameOver = true; stopMusic(); startSadMusic(); }, 1500);
   } else {
     setTimeout(resetPlane, 2500);
   }
@@ -686,6 +770,7 @@ function resetPlane() {
 }
 
 function restartGame() {
+  stopSadMusic();
   score = 0; lives = 3; level = 1; gameOver = false;
   levelComplete = false; levelTimer = 0; cameraX = 0;
   targets     = spawnTargets(1);
