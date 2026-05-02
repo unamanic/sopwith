@@ -9,6 +9,8 @@ const THROTTLE_RATE  = 0.025;
 const ROTATE_SPEED   = 1.8;
 const MAX_SPEED      = 7;
 const CRUISE_SPEED   = 2.0;
+const CEILING_Y      = 55;   // hard ceiling — no lift above this
+const CEILING_ZONE   = 180;  // lift degrades across this band below ceiling
 const GROUND_LEVEL   = H - 60;
 const TERRAIN_COLOR  = '#2d5a1b';
 
@@ -223,12 +225,15 @@ function updatePlane() {
     if (loopAngle >= 360) { looping = false; loopAngle = 0; plane.angle = Math.max(-75, Math.min(75, plane.angle)); }
   }
 
-  const airspeed   = Math.hypot(plane.vx, plane.vy);
-  const liftFactor = Math.min(airspeed / CRUISE_SPEED, 1);
-  const rad        = plane.angle * Math.PI / 180;
+  const airspeed    = Math.hypot(plane.vx, plane.vy);
+  const altFactor   = Math.max(0, Math.min(1, (plane.y - CEILING_Y) / CEILING_ZONE));
+  const liftFactor  = Math.min(airspeed / CRUISE_SPEED, 1) * altFactor;
+  const rad         = plane.angle * Math.PI / 180;
 
-  plane.vx += Math.cos(rad) * plane.throttle * 0.22 * dir;
-  plane.vy -= Math.sin(rad) * plane.throttle * 0.22;
+  // engine loses power in thin air above ceiling zone
+  const thrustPower = plane.throttle * 0.22 * altFactor;
+  plane.vx += Math.cos(rad) * thrustPower * dir;
+  plane.vy -= Math.sin(rad) * thrustPower;
   plane.vy += GRAVITY * (1 - liftFactor * 0.92);
 
   if (airspeed > 0.3) {
@@ -1101,9 +1106,12 @@ function drawHUD() {
   const thr       = Math.round(plane.throttle * 100);
   const spd       = Math.hypot(plane.vx, plane.vy);
   const alt       = Math.max(0, Math.round(terrainYAt(plane.x) - plane.y));
-  const stallWarn = spd < 1.0 && !plane.onGround;
-  const remaining = targets.filter(t => t.alive).length;
-  document.getElementById('hud-speed').textContent  = `THR: ${thr}%  SPD: ${spd.toFixed(1)}${stallWarn ? ' !!STALL' : ''}`;
+  const nearCeiling = plane.y < CEILING_Y + CEILING_ZONE;
+  const atCeiling   = plane.y < CEILING_Y + 30;
+  const stallWarn   = spd < 1.0 && !plane.onGround;
+  const warn        = atCeiling ? ' !!CEILING' : stallWarn ? ' !!STALL' : nearCeiling ? ' THIN AIR' : '';
+  const remaining   = targets.filter(t => t.alive).length;
+  document.getElementById('hud-speed').textContent  = `THR: ${thr}%  SPD: ${spd.toFixed(1)}${warn}`;
   document.getElementById('hud-alt').textContent    = `ALT: ${alt}`;
   document.getElementById('hud-ammo').textContent   = `AMMO: ${plane.ammo}`;
   document.getElementById('hud-bombs').textContent  = `BOMBS: ${plane.bombs}`;
