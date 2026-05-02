@@ -21,7 +21,7 @@ const NUM_SEGMENTS    = Math.ceil(WORLD_WIDTH / TERRAIN_SEGMENT) + 2;
 
 function generateTerrain() {
   const pts   = new Array(NUM_SEGMENTS).fill(GROUND_LEVEL);
-  const YMIN  = H * 0.33;
+  const YMIN  = H * 0.67; // keep terrain in lower third (above 2/3 of screen)
   const YMAX  = H - 14;
 
   // Build control points: [segIndex, y]
@@ -181,9 +181,10 @@ function spawnBalloons(lv = 1) {
   for (let i = 0; i < count; i++) {
     const x  = 700 + Math.random() * (WORLD_WIDTH - 1400);
     const gy = terrainYAt(x);
+    const balloonY = Math.max(50, gy - 220 - Math.random() * 100); // clamp to stay on screen
     result.push({
       x,
-      y:       gy - 220 - Math.random() * 100,
+      y:       balloonY,
       driftVx: (Math.random() - 0.5) * 0.25,
       wobble:  Math.random() * Math.PI * 2,
       alive:   true,
