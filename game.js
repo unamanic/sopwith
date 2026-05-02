@@ -147,6 +147,7 @@ const plane = {
 let score         = 0;
 let lives         = 3;
 let gameOver      = false;
+let titleScreen   = true;
 let level         = 1;
 let levelComplete = false;
 let levelTimer    = 0;
@@ -194,9 +195,11 @@ function spawnExplosion(x, y, big) {
 // ── Input ─────────────────────────────────────────────────────────────────────
 const keys = {};
 window.addEventListener('keydown', e => {
+  if (e.code === 'Space') e.preventDefault();
+  if (titleScreen) { titleScreen = false; return; }
   keys[e.code] = true;
   if (gameOver) { restartGame(); return; }
-  if (e.code === 'Space') { e.preventDefault(); fireBullet(); }
+  if (e.code === 'Space') fireBullet();
   if (e.code === 'KeyB')  dropBomb();
   if (e.code === 'KeyL' && !looping && !plane.onGround) { looping = true; loopAngle = 0; }
 });
@@ -1177,10 +1180,113 @@ function drawHUD() {
   }
 }
 
+// ── Title screen ──────────────────────────────────────────────────────────────
+function drawTitleScreen() {
+  // sky backdrop
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0,    '#08152b');
+  grad.addColorStop(0.6,  '#1a3a5c');
+  grad.addColorStop(1,    '#1e3a28');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  // stars
+  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  const starPos = [
+    [80,40],[200,25],[350,60],[500,30],[680,55],[820,20],[950,45],[1100,35],[1150,70],
+    [130,90],[400,15],[600,80],[750,40],[900,65],[1050,20],[300,100],[700,10],[1000,85],
+  ];
+  for (const [sx, sy] of starPos) {
+    ctx.beginPath(); ctx.arc(sx, sy, 0.8 + Math.random() * 0.6, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // distant terrain silhouette
+  ctx.fillStyle = '#1a3a10';
+  ctx.beginPath(); ctx.moveTo(0, H);
+  const silSteps = 30;
+  for (let i = 0; i <= silSteps; i++) {
+    const sx = (i / silSteps) * W;
+    const sy = H - 80 - Math.sin(i * 0.7) * 35 - Math.sin(i * 1.3) * 20;
+    ctx.lineTo(sx, sy);
+  }
+  ctx.lineTo(W, H); ctx.closePath(); ctx.fill();
+
+  // title — large stencil style
+  ctx.textAlign = 'center';
+  // drop shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx.font = 'bold 96px monospace';
+  ctx.fillText('SOPWITH', W / 2 + 4, 154);
+  // main text with gradient
+  const titleGrad = ctx.createLinearGradient(0, 70, 0, 155);
+  titleGrad.addColorStop(0, '#ffe066');
+  titleGrad.addColorStop(0.5, '#d4a030');
+  titleGrad.addColorStop(1, '#a06010');
+  ctx.fillStyle = titleGrad;
+  ctx.font = 'bold 96px monospace';
+  ctx.fillText('SOPWITH', W / 2, 150);
+  // outline
+  ctx.strokeStyle = '#7a4010'; ctx.lineWidth = 2;
+  ctx.strokeText('SOPWITH', W / 2, 150);
+
+  // subtitle
+  ctx.fillStyle = '#aaccee';
+  ctx.font = '18px monospace';
+  ctx.fillText('A WWI AERIAL COMBAT GAME', W / 2, 185);
+
+  // draw a large hero Sopwith Camel centred on screen
+  ctx.save();
+  ctx.translate(W / 2 - 60, 290);
+  ctx.scale(2.2, 2.2);
+  drawPlaneSopwith(0, 0, 8, 1, true);
+  ctx.restore();
+
+  // controls box
+  const boxX = W / 2 - 260, boxY = 370, boxW = 520, boxH = 200;
+  ctx.fillStyle = 'rgba(0,0,0,0.55)';
+  ctx.beginPath();
+  ctx.roundRect(boxX, boxY, boxW, boxH, 8);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(200,160,50,0.4)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.roundRect(boxX, boxY, boxW, boxH, 8); ctx.stroke();
+
+  ctx.fillStyle = '#d4b050';
+  ctx.font = 'bold 14px monospace';
+  ctx.fillText('CONTROLS', W / 2, boxY + 22);
+
+  const controls = [
+    ['↑ / ↓',    'Throttle up / down'],
+    ['← / →',    'Pitch nose up / down'],
+    ['SPACE',    'Fire machine guns'],
+    ['B',        'Drop bomb'],
+    ['L',        'Loop  (reverses direction)'],
+  ];
+
+  ctx.font = '14px monospace';
+  const colL = W / 2 - 200, colR = W / 2 - 60;
+  controls.forEach(([key, desc], i) => {
+    const y = boxY + 50 + i * 28;
+    ctx.fillStyle = '#ffdd88';
+    ctx.textAlign = 'right';
+    ctx.fillText(key, colR, y);
+    ctx.fillStyle = '#ccddee';
+    ctx.textAlign = 'left';
+    ctx.fillText(desc, colR + 14, y);
+  });
+
+  // blinking press key prompt
+  ctx.textAlign = 'center';
+  if (Math.floor(frame / 35) % 2 === 0) {
+    ctx.fillStyle = '#44ff88';
+    ctx.font = 'bold 18px monospace';
+    ctx.fillText('PRESS ANY KEY TO FLY', W / 2, boxY + boxH + 36);
+  }
+}
+
 // ── Game loop ─────────────────────────────────────────────────────────────────
 function loop() {
   frame++;
-  if (!gameOver) {
+  if (!gameOver && !titleScreen) {
     updatePlane();
     updateEnemyPlanes();
     updateAAGuns();
@@ -1192,18 +1298,22 @@ function loop() {
     updateCamera();
   }
 
-  drawSky();
-  drawTerrain();
-  drawTargets();
-  drawAAGuns();
-  drawBalloons();
-  drawEnemyPlanes();
-  drawBullets();
-  drawEnemyBullets();
-  drawBombs();
-  drawExplosions();
-  drawPlayerPlane();
-  drawHUD();
+  if (titleScreen) {
+    drawTitleScreen();
+  } else {
+    drawSky();
+    drawTerrain();
+    drawTargets();
+    drawAAGuns();
+    drawBalloons();
+    drawEnemyPlanes();
+    drawBullets();
+    drawEnemyBullets();
+    drawBombs();
+    drawExplosions();
+    drawPlayerPlane();
+    drawHUD();
+  }
 
   requestAnimationFrame(loop);
 }
