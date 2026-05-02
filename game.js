@@ -272,6 +272,103 @@ function playExplosion(big) {
   src.start();
 }
 
+// ── Music ─────────────────────────────────────────────────────────────────────
+const BPM = 116;
+const Q   = 60 / BPM;       // quarter note duration (s)
+
+// Frequencies
+const C3=130.81,D3=146.83,E3=164.81,F3=174.61,G3=196.00,A3=220.00,B3=246.94;
+const C4=261.63,D4=293.66,E4=329.63,F4=349.23,G4=392.00,A4=440.00,B4=493.88;
+const C5=523.25,D5=587.33,E5=659.25,F5=698.46,G5=783.99;
+const R  = 0; // rest
+
+// 8-bar heroic march melody (loops)
+const MELODY = [
+  // Bar 1 — ascending fanfare
+  [G4,Q],[G4,Q],[C5,Q],[E5,Q],
+  // Bar 2 — peak
+  [G5,Q*2],[E5,Q],[C5,Q],
+  // Bar 3 — response
+  [D5,Q],[D5,Q],[F5,Q],[D5,Q],
+  // Bar 4 — hold + breath
+  [C5,Q*3],[R,Q],
+  // Bar 5 — echo of bar 1
+  [E5,Q],[E5,Q],[G5,Q],[E5,Q],
+  // Bar 6 — step down
+  [C5,Q*2],[G4,Q],[E4,Q],
+  // Bar 7 — build
+  [F4,Q],[A4,Q],[C5,Q],[A4,Q],
+  // Bar 8 — resolve
+  [G4,Q*4],
+];
+
+// Simple walking bass (same 8-bar span)
+const BASS = [
+  [C3,Q*2],[G3,Q*2],  // bar 1
+  [C3,Q*2],[G3,Q*2],  // bar 2
+  [D3,Q*2],[A3,Q*2],  // bar 3
+  [C3,Q*2],[G3,Q*2],  // bar 4
+  [C3,Q*2],[E3,Q*2],  // bar 5
+  [C3,Q*2],[G3,Q*2],  // bar 6
+  [F3,Q*2],[C3,Q*2],  // bar 7
+  [G3,Q*2],[G3,Q*2],  // bar 8
+];
+
+let melodyIdx    = 0, bassIdx    = 0;
+let nextMelTime  = 0, nextBassTime = 0;
+let musicTimer   = null;
+let musicPlaying = false;
+
+function scheduleMusNote(freq, dur, time, vol, type) {
+  if (!audioCtx || freq === 0) return;
+  const osc  = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = type || 'sawtooth';
+  osc.frequency.value = freq;
+  // Simple brass-like envelope
+  gain.gain.setValueAtTime(0, time);
+  gain.gain.linearRampToValueAtTime(vol, time + Math.min(0.025, dur * 0.12));
+  gain.gain.setValueAtTime(vol * 0.8, time + dur * 0.65);
+  gain.gain.linearRampToValueAtTime(0, time + dur * 0.9);
+  osc.connect(gain);
+  gain.connect(masterGain || audioCtx.destination);
+  osc.start(time);
+  osc.stop(time + dur);
+}
+
+function musicTick() {
+  if (!audioCtx || !musicPlaying) return;
+  const LOOKAHEAD = 0.18;
+  const now = audioCtx.currentTime;
+
+  while (nextMelTime < now + LOOKAHEAD) {
+    const [f, d] = MELODY[melodyIdx % MELODY.length];
+    scheduleMusNote(f, d, nextMelTime, 0.06);
+    nextMelTime += d;
+    melodyIdx++;
+  }
+  while (nextBassTime < now + LOOKAHEAD) {
+    const [f, d] = BASS[bassIdx % BASS.length];
+    scheduleMusNote(f, d, nextBassTime, 0.045, 'triangle');
+    nextBassTime += d;
+    bassIdx++;
+  }
+  musicTimer = setTimeout(musicTick, 30);
+}
+
+function startMusic() {
+  if (!audioCtx || musicPlaying) return;
+  musicPlaying = true;
+  melodyIdx = bassIdx = 0;
+  nextMelTime = nextBassTime = audioCtx.currentTime + 0.1;
+  musicTick();
+}
+
+function stopMusic() {
+  musicPlaying = false;
+  if (musicTimer) { clearTimeout(musicTimer); musicTimer = null; }
+}
+
 // ── Projectiles ───────────────────────────────────────────────────────────────
 const bullets      = [];
 const bombs        = [];
@@ -315,7 +412,7 @@ function spawnExplosion(x, y, big) {
 const keys = {};
 window.addEventListener('keydown', e => {
   if (e.code === 'Space') e.preventDefault();
-  if (titleScreen) { titleScreen = false; initAudio(); return; }
+  if (titleScreen) { titleScreen = false; initAudio(); startMusic(); return; }
   keys[e.code] = true;
   if (gameOver) { restartGame(); return; }
   if (e.code === 'Space') fireBullet();
@@ -433,7 +530,7 @@ function killPlane() {
   spawnExplosion(plane.x, plane.y, true);
   lives--;
   if (lives <= 0) {
-    setTimeout(() => { gameOver = true; }, 1500);
+    setTimeout(() => { gameOver = true; stopMusic(); }, 1500);
   } else {
     setTimeout(resetPlane, 2500);
   }
@@ -456,6 +553,7 @@ function restartGame() {
   balloons    = spawnBalloons(1);
   bullets.length = 0; bombs.length = 0; enemyBullets.length = 0; explosions.length = 0;
   resetPlane();
+  startMusic();
 }
 
 // ── Enemy AI ──────────────────────────────────────────────────────────────────
