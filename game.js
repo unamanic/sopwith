@@ -276,7 +276,7 @@ function playExplosion(big) {
 const BPM = 150;
 const Q   = 60 / BPM;   // quarter note
 const E   = Q / 2;      // eighth note
-const H   = Q * 2;      // half note
+const MH  = Q * 2;      // half note (music)
 
 // Note frequencies (A minor)
 const A2=110.00,E3=164.81,A3=220.00,B3=246.94,C4=261.63,D4=293.66;
@@ -293,7 +293,7 @@ const MELODY = [
   // Bar 3 — driving sequence
   [G4,E],[A4,E],[B4,E],[C5,E], [D5,E],[E5,E],[F5,E],[G5,E],
   // Bar 4 — peak + breath
-  [A5,Q],[G5,E],[E5,E],        [A4,H],
+  [A5,Q],[G5,E],[E5,E],        [A4,MH],
   // Bar 5 — counter-theme (relative major feel)
   [C5,E],[C5,E],[G4,E],[C5,E], [E5,E],[D5,E],[C5,E],[B4,E],
   // Bar 6 — call
@@ -301,7 +301,7 @@ const MELODY = [
   // Bar 7 — fast descending run
   [E5,E],[D5,E],[C5,E],[B4,E], [A4,E],[B4,E],[C5,E],[D5,E],
   // Bar 8 — resolve to A
-  [E5,Q],[C5,E],[A4,E],        [A4,H],
+  [E5,Q],[C5,E],[A4,E],        [A4,MH],
 ];
 
 // Driving bass — alternates root/fifth, moves with harmony
