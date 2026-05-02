@@ -1860,7 +1860,7 @@ function drawTitleScreen() {
   ctx.restore();
 
   // controls box
-  const boxX = W / 2 - 260, boxY = 370, boxW = 520, boxH = 200;
+  const boxX = W / 2 - 260, boxY = 370, boxW = 520, boxH = 240;
   ctx.fillStyle = 'rgba(0,0,0,0.55)';
   ctx.beginPath();
   ctx.roundRect(boxX, boxY, boxW, boxH, 8);
