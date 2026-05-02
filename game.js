@@ -1285,12 +1285,13 @@ function drawAmmoPickups() {
 
     if (p.type === 'bomb') {
       // bomb pickup: dark red/grey bomb shape with fuse
-      ctx.globalAlpha = 0.35 + Math.sin(frame * 0.1) * 0.15;
-      ctx.strokeStyle = '#ff4400'; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.arc(sx, sy, 22, 0, Math.PI * 2); ctx.stroke();
+      ctx.globalAlpha = 0.6 + Math.sin(frame * 0.1) * 0.25;
+      ctx.strokeStyle = '#ff4400'; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.arc(sx, sy, 28, 0, Math.PI * 2); ctx.stroke();
       ctx.globalAlpha = 1;
 
       ctx.translate(sx, sy);
+      ctx.scale(1.4, 1.4);
       // bomb body
       ctx.fillStyle = '#333';
       ctx.beginPath(); ctx.arc(0, 3, 12, 0, Math.PI * 2); ctx.fill();
@@ -1313,12 +1314,13 @@ function drawAmmoPickups() {
       ctx.fillText('BOMB', 0, 28);
     } else {
       // bullet ammo: yellow rotating star (original style)
-      ctx.globalAlpha = 0.35 + Math.sin(frame * 0.1) * 0.15;
-      ctx.strokeStyle = '#ffcc00'; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.arc(sx, sy, 22, 0, Math.PI * 2); ctx.stroke();
+      ctx.globalAlpha = 0.6 + Math.sin(frame * 0.1) * 0.25;
+      ctx.strokeStyle = '#ffcc00'; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.arc(sx, sy, 28, 0, Math.PI * 2); ctx.stroke();
       ctx.globalAlpha = 1;
 
       ctx.translate(sx, sy);
+      ctx.scale(1.4, 1.4);
       ctx.rotate(frame * 0.025);
       ctx.fillStyle = '#ffdd00';
       ctx.beginPath();
