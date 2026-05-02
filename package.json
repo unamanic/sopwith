@@ -1,0 +1,24 @@
+{
+  "name": "sopwith",
+  "version": "1.0.0",
+  "description": "",
+  "main": "game.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/unamanic/sopwith.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/unamanic/sopwith/issues"
+  },
+  "homepage": "https://github.com/unamanic/sopwith#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.59.1"
+  }
+}

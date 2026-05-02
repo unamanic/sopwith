@@ -26,7 +26,7 @@ function generateTerrain() {
 
   // Build control points: [segIndex, y]
   const ctrl  = [];
-  const PLATEAU_HEIGHT = GROUND_LEVEL - 120; // raised start plateau for easier takeoff
+  const PLATEAU_HEIGHT = GROUND_LEVEL - 200; // raised start plateau for easier takeoff
   ctrl.push([0,  PLATEAU_HEIGHT]);
   ctrl.push([14, PLATEAU_HEIGHT]); // guaranteed flat start plateau
 
@@ -243,7 +243,7 @@ function updateAmmoPickups() {
 
 const plane = {
   x:           300,
-  y:           GROUND_LEVEL - 130,
+  y:           GROUND_LEVEL - 210,
   vx:          0,
   vy:          0,
   angle:       0,
@@ -680,7 +680,7 @@ window.addEventListener('keydown', e => {
   if (e.code === 'KeyB')  dropBomb();
   if (e.code === 'KeyM')  { if (!audioCtx) initAudio(); toggleSound(); }
   if (e.code === 'KeyL' && !looping && !plane.onGround) { looping = true; loopAngle = 0; }
-  if (e.code === 'KeyQ')  { if (!gameOver && !titleScreen) { titleScreen = true; stopSadMusic(); } }
+  if (e.code === 'KeyQ')  { if (!gameOver && !titleScreen) quitToTitle(); }
 });
 window.addEventListener('keyup', e => { keys[e.code] = false; });
 
@@ -803,7 +803,7 @@ function killPlane() {
 }
 
 function resetPlane() {
-  const PLATEAU_HEIGHT = GROUND_LEVEL - 120;
+  const PLATEAU_HEIGHT = GROUND_LEVEL - 200;
   plane.dead = false; plane.x = 300; plane.y = PLATEAU_HEIGHT - 10;
   plane.vx = 0; plane.vy = 0; plane.angle = 0; plane.throttle = 0;
   plane.facingRight = true; plane.onGround = true; plane.hasTakenOff = false;
@@ -823,6 +823,14 @@ function restartGame() {
   bullets.length = 0; bombs.length = 0; enemyBullets.length = 0; explosions.length = 0;
   resetPlane();
   startMusic();
+}
+
+function quitToTitle() {
+  titleScreen = true;
+  gameOver = false;
+  stopSadMusic();
+  score = 0; lives = 3; level = 1;
+  levelComplete = false; levelTimer = 0; cameraX = 0;
 }
 
 // ── Enemy AI ──────────────────────────────────────────────────────────────────
