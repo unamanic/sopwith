@@ -1715,12 +1715,12 @@ function drawHUD() {
   }
 
   // ammo/bomb sprites in upper left
-  let spriteX = 8, spriteY = 6;
+  let spriteX = 8;
+  let spriteY = 6;
   
-  // draw ammo bullets as small stars
+  // draw ammo bullets as stars in single row
   ctx.fillStyle = '#ffdd00';
   for (let i = 0; i < plane.ammo; i++) {
-    if (spriteX > 120) { spriteX = 8; spriteY += 28; }
     ctx.save();
     ctx.translate(spriteX, spriteY);
     ctx.scale(1.0, 1.0);
@@ -1739,12 +1739,12 @@ function drawHUD() {
     spriteX += 18;
   }
   
-  spriteX = 8; spriteY += 30;
+  // draw bombs in row below
+  spriteX = 8;
+  spriteY += 28;
   
-  // draw bombs
   ctx.fillStyle = '#333';
   for (let i = 0; i < plane.bombs; i++) {
-    if (spriteX > 120) { spriteX = 8; spriteY += 28; }
     ctx.save();
     ctx.translate(spriteX, spriteY);
     ctx.scale(1.5, 1.5);
