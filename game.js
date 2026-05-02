@@ -273,94 +273,124 @@ function playExplosion(big) {
 }
 
 // ── Music ─────────────────────────────────────────────────────────────────────
-const BPM = 116;
-const Q   = 60 / BPM;       // quarter note duration (s)
+const BPM = 150;
+const Q   = 60 / BPM;   // quarter note
+const E   = Q / 2;      // eighth note
+const H   = Q * 2;      // half note
 
-// Frequencies
-const C3=130.81,D3=146.83,E3=164.81,F3=174.61,G3=196.00,A3=220.00,B3=246.94;
-const C4=261.63,D4=293.66,E4=329.63,F4=349.23,G4=392.00,A4=440.00,B4=493.88;
-const C5=523.25,D5=587.33,E5=659.25,F5=698.46,G5=783.99;
-const R  = 0; // rest
+// Note frequencies (A minor)
+const A2=110.00,E3=164.81,A3=220.00,B3=246.94,C4=261.63,D4=293.66;
+const E4=329.63,F4=349.23,G4=392.00,A4=440.00,B4=493.88,C5=523.25;
+const D5=587.33,E5=659.25,F5=698.46,G5=783.99,A5=880.00,B5=987.77,C6=1046.50;
+const R=0;
 
-// 8-bar heroic march melody (loops)
+// 8-bar driving theme in A minor
 const MELODY = [
-  // Bar 1 — ascending fanfare
-  [G4,Q],[G4,Q],[C5,Q],[E5,Q],
-  // Bar 2 — peak
-  [G5,Q*2],[E5,Q],[C5,Q],
-  // Bar 3 — response
-  [D5,Q],[D5,Q],[F5,Q],[D5,Q],
-  // Bar 4 — hold + breath
-  [C5,Q*3],[R,Q],
-  // Bar 5 — echo of bar 1
-  [E5,Q],[E5,Q],[G5,Q],[E5,Q],
-  // Bar 6 — step down
-  [C5,Q*2],[G4,Q],[E4,Q],
-  // Bar 7 — build
-  [F4,Q],[A4,Q],[C5,Q],[A4,Q],
-  // Bar 8 — resolve
-  [G4,Q*4],
+  // Bar 1 — punchy opening motif
+  [A4,E],[C5,E],[E5,E],[A5,E], [G5,E],[E5,E],[C5,E],[A4,E],
+  // Bar 2 — answer phrase
+  [B4,Q],[D5,E],[F5,E],        [E5,Q],[C5,E],[A4,E],
+  // Bar 3 — driving sequence
+  [G4,E],[A4,E],[B4,E],[C5,E], [D5,E],[E5,E],[F5,E],[G5,E],
+  // Bar 4 — peak + breath
+  [A5,Q],[G5,E],[E5,E],        [A4,H],
+  // Bar 5 — counter-theme (relative major feel)
+  [C5,E],[C5,E],[G4,E],[C5,E], [E5,E],[D5,E],[C5,E],[B4,E],
+  // Bar 6 — call
+  [A4,Q],[C5,E],[E5,E],        [G5,Q],[F5,Q],
+  // Bar 7 — fast descending run
+  [E5,E],[D5,E],[C5,E],[B4,E], [A4,E],[B4,E],[C5,E],[D5,E],
+  // Bar 8 — resolve to A
+  [E5,Q],[C5,E],[A4,E],        [A4,H],
 ];
 
-// Simple walking bass (same 8-bar span)
+// Driving bass — alternates root/fifth, moves with harmony
 const BASS = [
-  [C3,Q*2],[G3,Q*2],  // bar 1
-  [C3,Q*2],[G3,Q*2],  // bar 2
-  [D3,Q*2],[A3,Q*2],  // bar 3
-  [C3,Q*2],[G3,Q*2],  // bar 4
-  [C3,Q*2],[E3,Q*2],  // bar 5
-  [C3,Q*2],[G3,Q*2],  // bar 6
-  [F3,Q*2],[C3,Q*2],  // bar 7
-  [G3,Q*2],[G3,Q*2],  // bar 8
+  [A2,Q],[E3,Q],[A2,Q],[E3,Q],   // bar 1 — Am
+  [A2,Q],[E3,Q],[A2,Q],[E3,Q],   // bar 2 — Am
+  [98.00,Q],[196.00,Q],[98.00,Q],[196.00,Q],   // bar 3 — G2/G3
+  [A2,Q],[E3,Q],[A2,Q],[E3,Q],                 // bar 4 — Am
+  [130.81,Q],[196.00,Q],[130.81,Q],[196.00,Q], // bar 5 — C3/G3
+  [87.31,Q],[130.81,Q],[87.31,Q],[130.81,Q],   // bar 6 — F2/C3
+  [E3,Q],[B3,Q],[E3,Q],[B3,Q],   // bar 7 — Em
+  [A2,Q],[E3,Q],[A2,Q],[E3,Q],   // bar 8 — Am resolve
 ];
 
-let melodyIdx    = 0, bassIdx    = 0;
-let nextMelTime  = 0, nextBassTime = 0;
-let musicTimer   = null;
-let musicPlaying = false;
+// Kick+snare pattern (repeats every bar, 4/4)
+const PERC = [
+  {kick:true, d:Q},{kick:false,d:Q},{kick:true, d:Q},{kick:false,d:Q},
+];
+
+let melodyIdx=0, bassIdx=0, percIdx=0;
+let nextMelTime=0, nextBassTime=0, nextPercTime=0;
+let musicTimer=null, musicPlaying=false;
 
 function scheduleMusNote(freq, dur, time, vol, type) {
   if (!audioCtx || freq === 0) return;
   const osc  = audioCtx.createOscillator();
   const gain = audioCtx.createGain();
-  osc.type = type || 'sawtooth';
+  osc.type = type || 'square';
   osc.frequency.value = freq;
-  // Simple brass-like envelope
   gain.gain.setValueAtTime(0, time);
-  gain.gain.linearRampToValueAtTime(vol, time + Math.min(0.025, dur * 0.12));
-  gain.gain.setValueAtTime(vol * 0.8, time + dur * 0.65);
-  gain.gain.linearRampToValueAtTime(0, time + dur * 0.9);
+  gain.gain.linearRampToValueAtTime(vol, time + Math.min(0.018, dur * 0.1));
+  gain.gain.setValueAtTime(vol * 0.75, time + dur * 0.6);
+  gain.gain.linearRampToValueAtTime(0, time + dur * 0.88);
   osc.connect(gain);
   gain.connect(masterGain || audioCtx.destination);
   osc.start(time);
   osc.stop(time + dur);
 }
 
+function schedulePerc(isKick, time) {
+  if (!audioCtx) return;
+  const dur = isKick ? 0.12 : 0.07;
+  const sr  = audioCtx.sampleRate;
+  const buf = audioCtx.createBuffer(1, Math.floor(sr * dur), sr);
+  const d   = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  const src    = audioCtx.createBufferSource();
+  src.buffer   = buf;
+  const filter = audioCtx.createBiquadFilter();
+  filter.type  = 'lowpass';
+  filter.frequency.value = isKick ? 180 : 4000;
+  const gain   = audioCtx.createGain();
+  gain.gain.setValueAtTime(isKick ? 0.55 : 0.22, time);
+  gain.gain.exponentialRampToValueAtTime(0.001, time + dur);
+  src.connect(filter); filter.connect(gain); gain.connect(masterGain || audioCtx.destination);
+  src.start(time);
+}
+
 function musicTick() {
   if (!audioCtx || !musicPlaying) return;
-  const LOOKAHEAD = 0.18;
+  const LOOKAHEAD = 0.2;
   const now = audioCtx.currentTime;
 
   while (nextMelTime < now + LOOKAHEAD) {
     const [f, d] = MELODY[melodyIdx % MELODY.length];
-    scheduleMusNote(f, d, nextMelTime, 0.06);
+    scheduleMusNote(f, d, nextMelTime, 0.055);
     nextMelTime += d;
     melodyIdx++;
   }
   while (nextBassTime < now + LOOKAHEAD) {
     const [f, d] = BASS[bassIdx % BASS.length];
-    scheduleMusNote(f, d, nextBassTime, 0.045, 'triangle');
+    scheduleMusNote(f, d, nextBassTime, 0.06, 'sawtooth');
     nextBassTime += d;
     bassIdx++;
   }
-  musicTimer = setTimeout(musicTick, 30);
+  while (nextPercTime < now + LOOKAHEAD) {
+    const p = PERC[percIdx % PERC.length];
+    schedulePerc(p.kick, nextPercTime);
+    nextPercTime += p.d;
+    percIdx++;
+  }
+  musicTimer = setTimeout(musicTick, 25);
 }
 
 function startMusic() {
   if (!audioCtx || musicPlaying) return;
   musicPlaying = true;
-  melodyIdx = bassIdx = 0;
-  nextMelTime = nextBassTime = audioCtx.currentTime + 0.1;
+  melodyIdx = bassIdx = percIdx = 0;
+  nextMelTime = nextBassTime = nextPercTime = audioCtx.currentTime + 0.1;
   musicTick();
 }
 
