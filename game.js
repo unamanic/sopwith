@@ -26,11 +26,12 @@ function generateTerrain() {
 
   // Build control points: [segIndex, y]
   const ctrl  = [];
-  ctrl.push([0,  GROUND_LEVEL]);
-  ctrl.push([14, GROUND_LEVEL]); // guaranteed flat start plateau
+  const PLATEAU_HEIGHT = GROUND_LEVEL - 120; // raised start plateau for easier takeoff
+  ctrl.push([0,  PLATEAU_HEIGHT]);
+  ctrl.push([14, PLATEAU_HEIGHT]); // guaranteed flat start plateau
 
   let pos  = 16;
-  let curY = GROUND_LEVEL;
+  let curY = PLATEAU_HEIGHT;
 
   while (pos < NUM_SEGMENTS - 25) {
     const roll = Math.random();
@@ -242,7 +243,7 @@ function updateAmmoPickups() {
 
 const plane = {
   x:           300,
-  y:           GROUND_LEVEL - 10,
+  y:           GROUND_LEVEL - 130,
   vx:          0,
   vy:          0,
   angle:       0,
@@ -679,6 +680,7 @@ window.addEventListener('keydown', e => {
   if (e.code === 'KeyB')  dropBomb();
   if (e.code === 'KeyM')  { if (!audioCtx) initAudio(); toggleSound(); }
   if (e.code === 'KeyL' && !looping && !plane.onGround) { looping = true; loopAngle = 0; }
+  if (e.code === 'KeyQ')  { if (!gameOver && !titleScreen) restartGame(); }
 });
 window.addEventListener('keyup', e => { keys[e.code] = false; });
 
@@ -801,7 +803,8 @@ function killPlane() {
 }
 
 function resetPlane() {
-  plane.dead = false; plane.x = 300; plane.y = GROUND_LEVEL - 10;
+  const PLATEAU_HEIGHT = GROUND_LEVEL - 120;
+  plane.dead = false; plane.x = 300; plane.y = PLATEAU_HEIGHT - 10;
   plane.vx = 0; plane.vy = 0; plane.angle = 0; plane.throttle = 0;
   plane.facingRight = true; plane.onGround = true; plane.hasTakenOff = false;
   plane.ammo = 40; plane.bombs = 6;
