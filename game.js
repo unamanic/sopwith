@@ -143,6 +143,8 @@ const plane = {
 };
 
 let score         = 0;
+let lives         = 3;
+let gameOver      = false;
 let level         = 1;
 let levelComplete = false;
 let levelTimer    = 0;
@@ -191,6 +193,7 @@ function spawnExplosion(x, y, big) {
 const keys = {};
 window.addEventListener('keydown', e => {
   keys[e.code] = true;
+  if (gameOver) { restartGame(); return; }
   if (e.code === 'Space') { e.preventDefault(); fireBullet(); }
   if (e.code === 'KeyB')  dropBomb();
   if (e.code === 'KeyL' && !looping && !plane.onGround) { looping = true; loopAngle = 0; }
@@ -301,7 +304,12 @@ function killPlane() {
   if (plane.dead) return;
   plane.dead = true;
   spawnExplosion(plane.x, plane.y, true);
-  setTimeout(resetPlane, 3000);
+  lives--;
+  if (lives <= 0) {
+    setTimeout(() => { gameOver = true; }, 1500);
+  } else {
+    setTimeout(resetPlane, 2500);
+  }
 }
 
 function resetPlane() {
@@ -310,6 +318,17 @@ function resetPlane() {
   plane.facingRight = true; plane.onGround = true;
   plane.ammo = 40; plane.bombs = 6;
   looping = false; loopAngle = 0;
+}
+
+function restartGame() {
+  score = 0; lives = 3; level = 1; gameOver = false;
+  levelComplete = false; levelTimer = 0; cameraX = 0;
+  targets     = spawnTargets(1);
+  enemyPlanes = spawnEnemyPlanes(1);
+  aaGuns      = spawnAAGuns(1, targets);
+  balloons    = spawnBalloons(1);
+  bullets.length = 0; bombs.length = 0; enemyBullets.length = 0; explosions.length = 0;
+  resetPlane();
 }
 
 // ── Enemy AI ──────────────────────────────────────────────────────────────────
@@ -1089,12 +1108,50 @@ function drawHUD() {
   document.getElementById('hud-bombs').textContent  = `BOMBS: ${plane.bombs}`;
   document.getElementById('hud-score').textContent  = `SCORE: ${score}  LVL: ${level}  TARGETS: ${remaining}`;
 
-  if (plane.dead) {
+  // lives as plane icons
+  const lifeX = W - 30, lifeY = 18;
+  for (let i = 0; i < 3; i++) {
+    const lx = lifeX - i * 28;
+    ctx.save();
+    ctx.translate(lx, lifeY);
+    ctx.scale(0.55, 0.55);
+    if (i < lives) {
+      ctx.fillStyle = '#d4b050';
+      ctx.beginPath(); ctx.ellipse(0, 0, 18, 6, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#d4b050';
+      ctx.fillRect(-8, -14, 30, 5);
+      ctx.fillRect(-4, 4, 24, 4);
+      ctx.beginPath(); ctx.arc(10, 0, 5, 0, Math.PI * 2); ctx.fillStyle = '#6b5020'; ctx.fill();
+    } else {
+      ctx.strokeStyle = 'rgba(200,80,80,0.5)'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(-12, -12); ctx.lineTo(12, 12); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(12, -12); ctx.lineTo(-12, 12); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  if (plane.dead && !gameOver) {
     ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(0, 0, W, H);
     ctx.fillStyle = '#ff4444'; ctx.font = 'bold 36px monospace'; ctx.textAlign = 'center';
-    ctx.fillText('SHOT DOWN', W / 2, H / 2 - 20);
-    ctx.fillStyle = '#ccc'; ctx.font = '16px monospace';
-    ctx.fillText('Respawning...', W / 2, H / 2 + 20);
+    ctx.fillText('SHOT DOWN', W / 2, H / 2 - 30);
+    ctx.fillStyle = '#ffaa44'; ctx.font = '20px monospace';
+    ctx.fillText(`${lives} ${lives === 1 ? 'life' : 'lives'} remaining`, W / 2, H / 2 + 10);
+    ctx.fillStyle = '#888'; ctx.font = '15px monospace';
+    ctx.fillText('Respawning...', W / 2, H / 2 + 38);
+    ctx.textAlign = 'left';
+  }
+
+  if (gameOver) {
+    ctx.fillStyle = 'rgba(0,0,0,0.75)'; ctx.fillRect(0, 0, W, H);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#ff2222'; ctx.font = 'bold 52px monospace';
+    ctx.fillText('GAME OVER', W / 2, H / 2 - 50);
+    ctx.fillStyle = '#ffcc44'; ctx.font = 'bold 24px monospace';
+    ctx.fillText(`FINAL SCORE: ${score}`, W / 2, H / 2 + 4);
+    ctx.fillStyle = '#aaaaaa'; ctx.font = '16px monospace';
+    ctx.fillText(`Reached Level ${level}`, W / 2, H / 2 + 36);
+    ctx.fillStyle = '#44ff88'; ctx.font = '18px monospace';
+    ctx.fillText('Press any key to fly again', W / 2, H / 2 + 78);
     ctx.textAlign = 'left';
   }
 
@@ -1111,15 +1168,17 @@ function drawHUD() {
 // ── Game loop ─────────────────────────────────────────────────────────────────
 function loop() {
   frame++;
-  updatePlane();
-  updateEnemyPlanes();
-  updateAAGuns();
-  updateBalloons();
-  updateEnemyBullets();
-  updateProjectiles();
-  checkLevelComplete();
-  updateLevelTimer();
-  updateCamera();
+  if (!gameOver) {
+    updatePlane();
+    updateEnemyPlanes();
+    updateAAGuns();
+    updateBalloons();
+    updateEnemyBullets();
+    updateProjectiles();
+    checkLevelComplete();
+    updateLevelTimer();
+    updateCamera();
+  }
 
   drawSky();
   drawTerrain();
