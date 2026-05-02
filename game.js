@@ -536,6 +536,7 @@ function updateLevelTimer() {
 
 function nextLevel() {
   level++;
+  lives++;
   targets     = spawnTargets(level);
   enemyPlanes = spawnEnemyPlanes(level);
   aaGuns      = spawnAAGuns(level, targets);
@@ -1157,10 +1158,13 @@ function drawHUD() {
 
   if (levelComplete) {
     ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = '#44ff88'; ctx.font = 'bold 38px monospace'; ctx.textAlign = 'center';
-    ctx.fillText(`LEVEL ${level} CLEAR!`, W / 2, H / 2 - 24);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#44ff88'; ctx.font = 'bold 38px monospace';
+    ctx.fillText(`LEVEL ${level} CLEAR!`, W / 2, H / 2 - 34);
+    ctx.fillStyle = '#ffdd44'; ctx.font = 'bold 22px monospace';
+    ctx.fillText('+1 UP', W / 2, H / 2 + 4);
     ctx.fillStyle = '#ccc'; ctx.font = '16px monospace';
-    ctx.fillText(`Next level in ${Math.ceil(levelTimer / 60)}...`, W / 2, H / 2 + 20);
+    ctx.fillText(`Next level in ${Math.ceil(levelTimer / 60)}...`, W / 2, H / 2 + 34);
     ctx.textAlign = 'left';
   }
 }
