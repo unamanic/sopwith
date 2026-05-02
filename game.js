@@ -161,10 +161,16 @@ let audioCtx     = null;
 let engineOsc    = null;
 let engineSubOsc = null;
 let engineGain   = null;
+let masterGain   = null;
+let soundEnabled = true;
 
 function initAudio() {
   if (audioCtx) return;
   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+  masterGain       = audioCtx.createGain();
+  masterGain.gain.value = 1;
+  masterGain.connect(audioCtx.destination);
 
   engineOsc    = audioCtx.createOscillator();
   engineSubOsc = audioCtx.createOscillator();
@@ -178,10 +184,23 @@ function initAudio() {
 
   engineOsc.connect(engineGain);
   engineSubOsc.connect(engineGain);
-  engineGain.connect(audioCtx.destination);
+  engineGain.connect(masterGain);
   engineOsc.start();
   engineSubOsc.start();
 }
+
+function toggleSound() {
+  soundEnabled = !soundEnabled;
+  if (masterGain) masterGain.gain.value = soundEnabled ? 1 : 0;
+  const btn = document.getElementById('btn-sound');
+  btn.textContent = soundEnabled ? '🔊 SFX' : '🔇 SFX';
+  btn.classList.toggle('muted', !soundEnabled);
+}
+
+document.getElementById('btn-sound').addEventListener('click', () => {
+  if (!audioCtx) initAudio();
+  toggleSound();
+});
 
 function updateEngineSound() {
   if (!audioCtx) return;
@@ -214,7 +233,7 @@ function playGunshot(isEnemy) {
   const gain       = audioCtx.createGain();
   gain.gain.value  = isEnemy ? 0.18 : 0.28;
 
-  src.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
+  src.connect(filter); filter.connect(gain); gain.connect(masterGain || audioCtx.destination);
   src.start();
 }
 
@@ -227,7 +246,7 @@ function playBombDrop() {
   osc.frequency.exponentialRampToValueAtTime(120, audioCtx.currentTime + 1.3);
   gain.gain.setValueAtTime(0.18, audioCtx.currentTime);
   gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.3);
-  osc.connect(gain); gain.connect(audioCtx.destination);
+  osc.connect(gain); gain.connect(masterGain || audioCtx.destination);
   osc.start(); osc.stop(audioCtx.currentTime + 1.3);
 }
 
@@ -249,7 +268,7 @@ function playExplosion(big) {
   gain.gain.setValueAtTime(big ? 0.65 : 0.38, audioCtx.currentTime);
   gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
 
-  src.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
+  src.connect(filter); filter.connect(gain); gain.connect(masterGain || audioCtx.destination);
   src.start();
 }
 
@@ -311,12 +330,12 @@ function updatePlane() {
 
   const dir = plane.facingRight ? 1 : -1;
 
-  if (keys['ArrowUp'])   plane.throttle = Math.min(1, plane.throttle + THROTTLE_RATE);
-  if (keys['ArrowDown']) plane.throttle = Math.max(0, plane.throttle - THROTTLE_RATE);
+  if (keys['KeyW'] || keys['ArrowUp'])   plane.throttle = Math.min(1, plane.throttle + THROTTLE_RATE);
+  if (keys['KeyS'] || keys['ArrowDown']) plane.throttle = Math.max(0, plane.throttle - THROTTLE_RATE);
 
   if (!looping) {
-    if (keys['ArrowLeft'])  plane.angle += ROTATE_SPEED * dir;
-    if (keys['ArrowRight']) plane.angle -= ROTATE_SPEED * dir;
+    if (keys['KeyA'] || keys['ArrowLeft'])  plane.angle += ROTATE_SPEED * dir;
+    if (keys['KeyD'] || keys['ArrowRight']) plane.angle -= ROTATE_SPEED * dir;
     plane.angle = Math.max(-75, Math.min(75, plane.angle));
   }
 
@@ -1357,8 +1376,8 @@ function drawTitleScreen() {
   ctx.fillText('CONTROLS', W / 2, boxY + 22);
 
   const controls = [
-    ['↑ / ↓',    'Throttle up / down'],
-    ['← / →',    'Pitch nose up / down'],
+    ['W / S',    'Throttle up / down'],
+    ['A / D',    'Pitch nose up / down'],
     ['SPACE',    'Fire machine guns'],
     ['B',        'Drop bomb'],
     ['L',        'Loop  (reverses direction)'],
