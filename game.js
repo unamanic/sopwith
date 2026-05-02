@@ -156,6 +156,103 @@ let looping       = false;
 let loopAngle     = 0;
 let frame         = 0;
 
+// ── Audio ─────────────────────────────────────────────────────────────────────
+let audioCtx     = null;
+let engineOsc    = null;
+let engineSubOsc = null;
+let engineGain   = null;
+
+function initAudio() {
+  if (audioCtx) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+  engineOsc    = audioCtx.createOscillator();
+  engineSubOsc = audioCtx.createOscillator();
+  engineGain   = audioCtx.createGain();
+
+  engineOsc.type    = 'sawtooth';
+  engineSubOsc.type = 'square';
+  engineOsc.frequency.value    = 80;
+  engineSubOsc.frequency.value = 40;
+  engineGain.gain.value = 0;
+
+  engineOsc.connect(engineGain);
+  engineSubOsc.connect(engineGain);
+  engineGain.connect(audioCtx.destination);
+  engineOsc.start();
+  engineSubOsc.start();
+}
+
+function updateEngineSound() {
+  if (!audioCtx) return;
+  const now = audioCtx.currentTime;
+  if (plane.dead || titleScreen || gameOver) {
+    engineGain.gain.setTargetAtTime(0, now, 0.4);
+    return;
+  }
+  const spd  = Math.hypot(plane.vx, plane.vy);
+  const freq = 55 + plane.throttle * 140 + spd * 5;
+  const vol  = plane.throttle < 0.02 ? 0.01 : 0.03 + plane.throttle * 0.09;
+  engineOsc.frequency.setTargetAtTime(freq,       now, 0.12);
+  engineSubOsc.frequency.setTargetAtTime(freq * 0.5, now, 0.12);
+  engineGain.gain.setTargetAtTime(vol, now, 0.06);
+}
+
+function playGunshot(isEnemy) {
+  if (!audioCtx) return;
+  const dur  = 0.07;
+  const buf  = audioCtx.createBuffer(1, Math.floor(audioCtx.sampleRate * dur), audioCtx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
+
+  const src    = audioCtx.createBufferSource();
+  src.buffer   = buf;
+  const filter = audioCtx.createBiquadFilter();
+  filter.type  = 'bandpass';
+  filter.frequency.value = isEnemy ? 500 : 1100;
+  filter.Q.value         = 0.8;
+  const gain       = audioCtx.createGain();
+  gain.gain.value  = isEnemy ? 0.18 : 0.28;
+
+  src.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
+  src.start();
+}
+
+function playBombDrop() {
+  if (!audioCtx) return;
+  const osc  = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type   = 'sine';
+  osc.frequency.setValueAtTime(700, audioCtx.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(120, audioCtx.currentTime + 1.3);
+  gain.gain.setValueAtTime(0.18, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.3);
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  osc.start(); osc.stop(audioCtx.currentTime + 1.3);
+}
+
+function playExplosion(big) {
+  if (!audioCtx) return;
+  const duration = big ? 1.1 : 0.55;
+  const sr       = audioCtx.sampleRate;
+  const buf      = audioCtx.createBuffer(1, Math.floor(sr * duration), sr);
+  const data     = buf.getChannelData(0);
+  for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+
+  const src    = audioCtx.createBufferSource();
+  src.buffer   = buf;
+  const filter = audioCtx.createBiquadFilter();
+  filter.type  = 'lowpass';
+  filter.frequency.setValueAtTime(big ? 1200 : 1800, audioCtx.currentTime);
+  filter.frequency.exponentialRampToValueAtTime(60, audioCtx.currentTime + duration);
+  const gain = audioCtx.createGain();
+  gain.gain.setValueAtTime(big ? 0.65 : 0.38, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+
+  src.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
+  src.start();
+}
+
 // ── Projectiles ───────────────────────────────────────────────────────────────
 const bullets      = [];
 const bombs        = [];
@@ -176,6 +273,7 @@ function fireBullet() {
   });
   plane.ammo--;
   fireCooldown = 6;
+  playGunshot(false);
 }
 
 function dropBomb() {
@@ -186,17 +284,19 @@ function dropBomb() {
     life: 200,
   });
   plane.bombs--;
+  playBombDrop();
 }
 
 function spawnExplosion(x, y, big) {
   explosions.push({ x, y, r: 0, maxR: big ? 100 : 36, life: 40, maxLife: 40 });
+  playExplosion(big);
 }
 
 // ── Input ─────────────────────────────────────────────────────────────────────
 const keys = {};
 window.addEventListener('keydown', e => {
   if (e.code === 'Space') e.preventDefault();
-  if (titleScreen) { titleScreen = false; return; }
+  if (titleScreen) { titleScreen = false; initAudio(); return; }
   keys[e.code] = true;
   if (gameOver) { restartGame(); return; }
   if (e.code === 'Space') fireBullet();
@@ -391,6 +491,7 @@ function updateEnemyPlanes() {
           vy: Math.sin(shootAngle) * 7,
           life: 70, isFlak: false,
         });
+        playGunshot(true);
         e.fireCooldown = 70 + Math.floor(Math.random() * 90);
       } else {
         e.fireCooldown = 15;
@@ -414,6 +515,7 @@ function updateAAGuns() {
         vy: Math.sin(ang) * 3.5,
         life: 110, isFlak: true,
       });
+      playGunshot(true);
       g.cooldown = 100 + Math.floor(Math.random() * 120);
     }
   }
@@ -1297,6 +1399,7 @@ function loop() {
     updateLevelTimer();
     updateCamera();
   }
+  updateEngineSound();
 
   if (titleScreen) {
     drawTitleScreen();
