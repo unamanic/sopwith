@@ -737,14 +737,25 @@ function updatePlane() {
   if (plane.x < 0)           { plane.x = 0;          plane.vx =  Math.abs(plane.vx) * 0.5; }
   if (plane.x > WORLD_WIDTH) { plane.x = WORLD_WIDTH; plane.vx = -Math.abs(plane.vx) * 0.5; }
 
-  const gy = terrainYAt(plane.x);
-  if (plane.y >= gy - 10) {
+  // check platform collision first
+  const platformX = 150;
+  const platformW = 300;
+  const platformTerrainY = terrainYAt(platformX + platformW / 2);
+  const platformTopY = platformTerrainY - 25;
+  
+  let groundY = terrainYAt(plane.x);
+  if (plane.x >= platformX && plane.x <= platformX + platformW) {
+    // plane is over platform, use platform surface
+    groundY = platformTopY;
+  }
+
+  if (plane.y >= groundY - 10) {
     if (plane.hasTakenOff) {
       killPlane();
     } else if (Math.abs(plane.vy) > 2.8 || Math.abs(plane.angle) > 35) {
       killPlane();
     } else {
-      plane.y = gy - 10; plane.vy = 0; plane.vx *= 0.90;
+      plane.y = groundY - 10; plane.vy = 0; plane.vx *= 0.90;
       plane.angle *= 0.85; plane.onGround = true;
       if (Math.abs(plane.vx) < 0.05) plane.vx = 0;
     }
