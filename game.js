@@ -648,7 +648,7 @@ function fireBullet() {
     y:  plane.y - Math.sin(rad) * 22,
     vx: Math.cos(rad) * 8 * dir + plane.vx * 0.4,
     vy: -Math.sin(rad) * 8 + plane.vy * 0.4,
-    life: 60,
+    life: 150,
   });
   plane.ammo--;
   fireCooldown = 6;
