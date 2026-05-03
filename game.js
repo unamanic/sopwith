@@ -1080,7 +1080,8 @@ function nextLevel() {
 
 // ── Camera ────────────────────────────────────────────────────────────────────
 function updateCamera() {
-  const target = plane.x - W * 0.35;
+  const offset = plane.facingRight ? W * 0.33 : W * 0.67;
+  const target = plane.x - offset;
   cameraX += (target - cameraX) * 0.08;
   cameraX  = Math.max(0, Math.min(WORLD_WIDTH - W, cameraX));
 }
