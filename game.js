@@ -807,7 +807,7 @@ function resetPlane() {
   const platformX = 150;
   const platformW = 300;
   const platformStartY = terrainYAt(platformX + platformW / 2) - 25; // top of platform
-  plane.dead = false; plane.x = platformX + platformW / 2; plane.y = platformStartY - 10;
+  plane.dead = false; plane.x = platformX + 20; plane.y = platformStartY - 10;
   plane.vx = 0; plane.vy = 0; plane.angle = 0; plane.throttle = 0;
   plane.facingRight = true; plane.onGround = true; plane.hasTakenOff = false;
   plane.ammo = 40; plane.bombs = 6;
