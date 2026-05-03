@@ -1152,13 +1152,25 @@ function drawPlatform() {
   const platformTopY = avgTerrainY - 25;
   const platformBottomY = avgTerrainY + 5;
 
+  // trapezoid shape: wider at bottom, narrower at top
+  const topInset = 20;  // inset from edges at top
+  const slant = platformW * 0.15;  // slant amount
+
   // paved surface with gradient
   const pavGrad = ctx.createLinearGradient(platformStartX, platformTopY, platformStartX, platformBottomY);
   pavGrad.addColorStop(0, '#505050');
   pavGrad.addColorStop(0.5, '#707070');
   pavGrad.addColorStop(1, '#404040');
   ctx.fillStyle = pavGrad;
-  ctx.fillRect(platformStartX, platformTopY, platformW, platformBottomY - platformTopY);
+  
+  // draw trapezoid
+  ctx.beginPath();
+  ctx.moveTo(platformStartX + topInset, platformTopY);
+  ctx.lineTo(platformEndX - topInset, platformTopY);
+  ctx.lineTo(platformEndX, platformBottomY);
+  ctx.lineTo(platformStartX, platformBottomY);
+  ctx.closePath();
+  ctx.fill();
 
   // concrete texture with grid lines (lane markings)
   ctx.strokeStyle = '#ffff99';
@@ -1167,19 +1179,21 @@ function drawPlatform() {
   
   // center line
   ctx.beginPath();
-  ctx.moveTo(platformStartX, (platformTopY + platformBottomY) / 2);
-  ctx.lineTo(platformEndX, (platformTopY + platformBottomY) / 2);
+  ctx.moveTo(platformStartX + topInset / 2, (platformTopY + platformBottomY) / 2);
+  ctx.lineTo(platformEndX - topInset / 2, (platformTopY + platformBottomY) / 2);
   ctx.stroke();
 
-  // dashed side lines
+  // dashed side lines following trapezoid edges
   ctx.lineWidth = 1;
   ctx.setLineDash([10, 8]);
+  // left edge
   ctx.beginPath();
-  ctx.moveTo(platformStartX, platformTopY + 6);
-  ctx.lineTo(platformEndX, platformTopY + 6);
+  ctx.moveTo(platformStartX + topInset * 0.7, platformTopY + 6);
+  ctx.lineTo(platformStartX, platformBottomY - 6);
   ctx.stroke();
+  // right edge
   ctx.beginPath();
-  ctx.moveTo(platformStartX, platformBottomY - 6);
+  ctx.moveTo(platformEndX - topInset * 0.7, platformTopY + 6);
   ctx.lineTo(platformEndX, platformBottomY - 6);
   ctx.stroke();
   ctx.setLineDash([]);
@@ -1187,9 +1201,13 @@ function drawPlatform() {
   // concrete seams every 50px
   ctx.strokeStyle = 'rgba(0,0,0,0.3)';
   ctx.lineWidth = 1;
-  for (let x = platformStartX; x <= platformEndX; x += 50) {
+  for (let i = 0; i <= 6; i++) {
+    const x = platformStartX + (platformW * i / 6);
+    const topX = platformStartX + topInset + (platformW - topInset * 2) * (i / 6);
+    const progress = i / 6;
+    const seamTop = platformTopY + (topX - (platformStartX + topInset));
     ctx.beginPath();
-    ctx.moveTo(x, platformTopY);
+    ctx.moveTo(topX, platformTopY);
     ctx.lineTo(x, platformBottomY);
     ctx.stroke();
   }
