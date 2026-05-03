@@ -1121,6 +1121,68 @@ function drawTerrain() {
   ctx.strokeStyle = 'rgba(0,0,0,0.15)'; ctx.lineWidth = 1; ctx.stroke();
 }
 
+function drawPlatform() {
+  const platformX = 150;  // start position
+  const platformW = 200;  // width
+  const platformStartX = platformX - cameraX;
+  const platformEndX = platformStartX + platformW;
+
+  // skip if off screen
+  if (platformEndX < 0 || platformStartX > W) return;
+
+  const terrainAtStart = terrainYAt(platformX);
+  const terrainAtEnd = terrainYAt(platformX + platformW);
+  const avgTerrainY = (terrainAtStart + terrainAtEnd) / 2;
+
+  // platform boundaries
+  const platformTopY = avgTerrainY - 25;
+  const platformBottomY = avgTerrainY + 5;
+
+  // paved surface with gradient
+  const pavGrad = ctx.createLinearGradient(platformStartX, platformTopY, platformStartX, platformBottomY);
+  pavGrad.addColorStop(0, '#505050');
+  pavGrad.addColorStop(0.5, '#707070');
+  pavGrad.addColorStop(1, '#404040');
+  ctx.fillStyle = pavGrad;
+  ctx.fillRect(platformStartX, platformTopY, platformW, platformBottomY - platformTopY);
+
+  // concrete texture with grid lines (lane markings)
+  ctx.strokeStyle = '#ffff99';
+  ctx.lineWidth = 2;
+  ctx.globalAlpha = 0.6;
+  
+  // center line
+  ctx.beginPath();
+  ctx.moveTo(platformStartX, (platformTopY + platformBottomY) / 2);
+  ctx.lineTo(platformEndX, (platformTopY + platformBottomY) / 2);
+  ctx.stroke();
+
+  // dashed side lines
+  ctx.lineWidth = 1;
+  ctx.setLineDash([10, 8]);
+  ctx.beginPath();
+  ctx.moveTo(platformStartX, platformTopY + 6);
+  ctx.lineTo(platformEndX, platformTopY + 6);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(platformStartX, platformBottomY - 6);
+  ctx.lineTo(platformEndX, platformBottomY - 6);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // concrete seams every 50px
+  ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+  ctx.lineWidth = 1;
+  for (let x = platformStartX; x <= platformEndX; x += 50) {
+    ctx.beginPath();
+    ctx.moveTo(x, platformTopY);
+    ctx.lineTo(x, platformBottomY);
+    ctx.stroke();
+  }
+
+  ctx.globalAlpha = 1;
+}
+
 function drawBuilding(sx, t) {
   const x = sx, y = t.y, w = t.w, h = t.h;
   // shadow
@@ -1926,6 +1988,7 @@ function loop() {
   } else {
     drawSky();
     drawTerrain();
+    drawPlatform();
     drawTargets();
     drawAAGuns();
     drawAmmoPickups();
