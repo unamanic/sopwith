@@ -267,6 +267,7 @@ let levelTimer    = 0;
 let cameraX       = 0;
 let looping       = false;
 let loopAngle     = 0;
+let loopDir       = 0;  // tracks which way the loop goes
 let frame         = 0;
 
 // ── Audio ─────────────────────────────────────────────────────────────────────
@@ -680,7 +681,10 @@ window.addEventListener('keydown', e => {
   if (e.code === 'Space') fireBullet();
   if (e.code === 'KeyB')  dropBomb();
   if (e.code === 'KeyM')  { if (!audioCtx) initAudio(); toggleSound(); }
-  if (e.code === 'KeyL' && !looping && !plane.onGround) { looping = true; loopAngle = 0; }
+  if (e.code === 'KeyL' && !looping && !plane.onGround) { 
+    looping = true; loopAngle = 0; 
+    loopDir = -1;  // loops always go up
+  }
   if (e.code === 'KeyQ')  { if (!gameOver && !titleScreen) quitToTitle(); }
 });
 window.addEventListener('keyup', e => { keys[e.code] = false; });
@@ -702,10 +706,10 @@ function updatePlane() {
 
   if (looping) {
     const step = 4.5;
-    plane.angle += step * dir;
+    plane.angle += step * loopDir;
     loopAngle   += step;
     if (loopAngle >= 180 && loopAngle - step < 180) plane.facingRight = !plane.facingRight;
-    if (loopAngle >= 360) { looping = false; loopAngle = 0; plane.angle = Math.max(-75, Math.min(75, plane.angle)); }
+    if (loopAngle >= 360) { looping = false; loopAngle = 0; loopDir = 0; plane.angle = Math.max(-75, Math.min(75, plane.angle)); }
   }
 
   const airspeed    = Math.hypot(plane.vx, plane.vy);
@@ -829,7 +833,7 @@ function resetPlane() {
   plane.vx = 0; plane.vy = 0; plane.angle = 0; plane.throttle = 0;
   plane.facingRight = true; plane.onGround = true; plane.hasTakenOff = false;
   plane.ammo = 40; plane.bombs = 6;
-  looping = false; loopAngle = 0;
+  looping = false; loopAngle = 0; loopDir = 0;
 }
 
 function restartGame() {
