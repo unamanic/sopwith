@@ -102,7 +102,7 @@ function generateTerrain() {
   return pts;
 }
 
-const terrain = generateTerrain();
+let terrain = generateTerrain();
 
 function terrainYAt(worldX) {
   const seg = worldX / TERRAIN_SEGMENT;
@@ -814,6 +814,7 @@ function resetPlane() {
 
 function restartGame() {
   stopSadMusic();
+  terrain = generateTerrain(); // regenerate terrain for new game
   score = 0; lives = 3; level = 1; gameOver = false;
   levelComplete = false; levelTimer = 0; cameraX = 0;
   targets     = spawnTargets(1);
