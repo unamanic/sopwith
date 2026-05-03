@@ -244,7 +244,7 @@ function updateAmmoPickups() {
 
 const plane = {
   x:           300,
-  y:           GROUND_LEVEL - 210,
+  y:           GROUND_LEVEL - 235,
   vx:          0,
   vy:          0,
   angle:       0,
@@ -804,8 +804,10 @@ function killPlane() {
 }
 
 function resetPlane() {
-  const PLATEAU_HEIGHT = GROUND_LEVEL - 200;
-  plane.dead = false; plane.x = 300; plane.y = PLATEAU_HEIGHT - 10;
+  const platformX = 150;
+  const platformW = 300;
+  const platformStartY = terrainYAt(platformX + platformW / 2) - 25; // top of platform
+  plane.dead = false; plane.x = platformX + platformW / 2; plane.y = platformStartY - 10;
   plane.vx = 0; plane.vy = 0; plane.angle = 0; plane.throttle = 0;
   plane.facingRight = true; plane.onGround = true; plane.hasTakenOff = false;
   plane.ammo = 40; plane.bombs = 6;
@@ -1124,7 +1126,7 @@ function drawTerrain() {
 
 function drawPlatform() {
   const platformX = 150;  // start position
-  const platformW = 200;  // width
+  const platformW = 300;  // width
   const platformStartX = platformX - cameraX;
   const platformEndX = platformStartX + platformW;
 
