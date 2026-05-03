@@ -706,10 +706,10 @@ function updatePlane() {
 
   if (looping) {
     const step = 4.5;
-    plane.angle += step * loopDir;
     loopAngle   += step;
+    plane.angle = loopAngle * loopDir;  // track angle from loop progress, not cumulative rotation
     if (loopAngle >= 180 && loopAngle - step < 180) plane.facingRight = !plane.facingRight;
-    if (loopAngle >= 360) { looping = false; loopAngle = 0; loopDir = 0; plane.angle = Math.max(-75, Math.min(75, plane.angle)); }
+    if (loopAngle >= 360) { looping = false; loopAngle = 0; loopDir = 0; plane.angle = 0; }
   }
 
   const airspeed    = Math.hypot(plane.vx, plane.vy);
