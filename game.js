@@ -6,7 +6,7 @@ const H = canvas.height;
 // ── Constants ─────────────────────────────────────────────────────────────────
 const GRAVITY        = 0.12 * 0.8;
 const THROTTLE_RATE  = 0.025 * 0.8;
-const ROTATE_SPEED   = 1.8 * 0.8;
+const ROTATE_SPEED   = 1.8 * 0.8 * 0.65;
 const MAX_SPEED      = 7 * 0.8;
 const CRUISE_SPEED   = 2.0 * 0.8;
 const CEILING_Y      = 55;   // hard ceiling — no lift above this
@@ -744,9 +744,11 @@ function updatePlane() {
   const platformTopY = platformTerrainY - 25;
   
   let groundY = terrainYAt(plane.x);
+  let onPlatform = false;
   if (plane.x >= platformX && plane.x <= platformX + platformW) {
     // plane is over platform, use platform surface
     groundY = platformTopY;
+    onPlatform = true;
   }
 
   if (plane.y >= groundY - 10) {
@@ -755,8 +757,13 @@ function updatePlane() {
     } else if (Math.abs(plane.vy) > 2.8 || Math.abs(plane.angle) > 35) {
       killPlane();
     } else {
-      plane.y = groundY - 10; plane.vy = 0; plane.vx *= 0.90;
-      plane.angle *= 0.85; plane.onGround = true;
+      plane.y = groundY - 10; plane.vy = 0;
+      // on platform: no friction, accelerate freely
+      if (!onPlatform) {
+        plane.vx *= 0.90;
+        plane.angle *= 0.85;
+      }
+      plane.onGround = true;
       if (Math.abs(plane.vx) < 0.05) plane.vx = 0;
     }
   } else {
@@ -818,7 +825,7 @@ function resetPlane() {
   const platformX = 150;
   const platformW = 300;
   const platformStartY = terrainYAt(platformX + platformW / 2) - 25; // top of platform
-  plane.dead = false; plane.x = platformX + 20; plane.y = platformStartY - 10;
+  plane.dead = false; plane.x = platformX; plane.y = platformStartY - 10;
   plane.vx = 0; plane.vy = 0; plane.angle = 0; plane.throttle = 0;
   plane.facingRight = true; plane.onGround = true; plane.hasTakenOff = false;
   plane.ammo = 40; plane.bombs = 6;
