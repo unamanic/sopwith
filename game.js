@@ -4,11 +4,11 @@ const W = canvas.width;
 const H = canvas.height;
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-const GRAVITY        = 0.12;
-const THROTTLE_RATE  = 0.025;
-const ROTATE_SPEED   = 1.8;
-const MAX_SPEED      = 7;
-const CRUISE_SPEED   = 2.0;
+const GRAVITY        = 0.12 * 0.8;
+const THROTTLE_RATE  = 0.025 * 0.8;
+const ROTATE_SPEED   = 1.8 * 0.8;
+const MAX_SPEED      = 7 * 0.8;
+const CRUISE_SPEED   = 2.0 * 0.8;
 const CEILING_Y      = 55;   // hard ceiling — no lift above this
 const CEILING_ZONE   = 180;  // lift degrades across this band below ceiling
 const GROUND_LEVEL   = H - 60;
@@ -185,7 +185,7 @@ function spawnBalloons(lv = 1) {
     result.push({
       x,
       y:       balloonY,
-      driftVx: (Math.random() - 0.5) * 0.25,
+      driftVx: (Math.random() - 0.5) * 0.2,
       wobble:  Math.random() * Math.PI * 2,
       alive:   true,
       score:   250 * lv,
@@ -645,8 +645,8 @@ function fireBullet() {
   bullets.push({
     x:  plane.x + Math.cos(rad) * 22 * dir,
     y:  plane.y - Math.sin(rad) * 22,
-    vx: Math.cos(rad) * 10 * dir + plane.vx * 0.4,
-    vy: -Math.sin(rad) * 10 + plane.vy * 0.4,
+    vx: Math.cos(rad) * 8 * dir + plane.vx * 0.4,
+    vy: -Math.sin(rad) * 8 + plane.vy * 0.4,
     life: 60,
   });
   plane.ammo--;
@@ -871,7 +871,7 @@ function updateEnemyPlanes() {
 
     const eDir   = e.facingRight ? 1 : -1;
     const erad   = e.angle * Math.PI / 180;
-    const espeed = chasing ? 3.0 : 2.2;
+    const espeed = chasing ? 2.4 : 1.76;
 
     e.vx  = Math.cos(erad) * espeed * eDir;
     e.vy  = -Math.sin(erad) * espeed;
@@ -896,8 +896,8 @@ function updateEnemyPlanes() {
         enemyBullets.push({
           x: e.x + Math.cos(shootAngle) * 24 * eDir,
           y: e.y + Math.sin(shootAngle) * 24,
-          vx: Math.cos(shootAngle) * 7 * eDir,
-          vy: Math.sin(shootAngle) * 7,
+          vx: Math.cos(shootAngle) * 5.6 * eDir,
+          vy: Math.sin(shootAngle) * 5.6,
           life: 70, isFlak: false,
         });
         playGunshot(true);
@@ -920,8 +920,8 @@ function updateAAGuns() {
       const ang    = Math.atan2(dy, dx);
       enemyBullets.push({
         x: g.x, y: g.y - 12,
-        vx: Math.cos(ang) * 3.5,
-        vy: Math.sin(ang) * 3.5,
+        vx: Math.cos(ang) * 2.8,
+        vy: Math.sin(ang) * 2.8,
         life: 110, isFlak: true,
       });
       playGunshot(true);
@@ -933,7 +933,7 @@ function updateAAGuns() {
 function updateBalloons() {
   for (const b of balloons) {
     if (!b.alive) continue;
-    b.wobble += 0.02;
+    b.wobble += 0.016;
     b.x += b.driftVx + Math.sin(b.wobble) * 0.05;
     if (b.x < 200 || b.x > WORLD_WIDTH - 200) b.driftVx *= -1;
   }
