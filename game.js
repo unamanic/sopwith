@@ -717,7 +717,7 @@ function updatePlane() {
   const liftFactor  = Math.min(airspeed / CRUISE_SPEED, 1) * altFactor;
   
   // ground effect: extra lift when near the ground
-  const groundY = terrainYAt(plane.x);
+  let groundY = terrainYAt(plane.x);
   const heightAboveGround = groundY - plane.y;
   const groundEffectZone = 80;  // distance for ground effect
   const groundEffectLift = Math.max(0, 1 - heightAboveGround / groundEffectZone) * 0.3;
