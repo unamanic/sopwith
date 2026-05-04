@@ -715,13 +715,20 @@ function updatePlane() {
   const airspeed    = Math.hypot(plane.vx, plane.vy);
   const altFactor   = Math.max(0, Math.min(1, (plane.y - CEILING_Y) / CEILING_ZONE));
   const liftFactor  = Math.min(airspeed / CRUISE_SPEED, 1) * altFactor;
+  
+  // ground effect: extra lift when near the ground
+  const groundY = terrainYAt(plane.x);
+  const heightAboveGround = groundY - plane.y;
+  const groundEffectZone = 80;  // distance for ground effect
+  const groundEffectLift = Math.max(0, 1 - heightAboveGround / groundEffectZone) * 0.3;
+  
   const rad         = plane.angle * Math.PI / 180;
 
   // engine loses power in thin air above ceiling zone
   const thrustPower = plane.throttle * 0.22 * altFactor;
   plane.vx += Math.cos(rad) * thrustPower * dir;
   plane.vy -= Math.sin(rad) * thrustPower;
-  plane.vy += GRAVITY * (1 - liftFactor * 0.92);
+  plane.vy += GRAVITY * (1 - (liftFactor + groundEffectLift) * 0.92);
 
   if (airspeed > 0.3) {
     const blend = liftFactor * 0.07;
