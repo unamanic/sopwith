@@ -754,7 +754,7 @@ function updatePlane() {
   const platformTerrainY = terrainYAt(platformX + platformW / 2);
   const platformTopY = platformTerrainY - 25;
   
-  let groundY = terrainYAt(plane.x);
+  groundY = terrainYAt(plane.x);  // reuse groundY from ground effect calculation
   let onPlatform = false;
   if (plane.x >= platformX && plane.x <= platformX + platformW) {
     // plane is over platform, use platform surface
